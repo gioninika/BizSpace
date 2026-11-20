@@ -1,0 +1,305 @@
+@BizSpace_HostAddress = https://localhost:7082
+@customerToken = replace-with-jwt
+@adminToken = replace-with-admin-jwt
+@managerToken = replace-with-store-manager-jwt
+@productId = 1
+@orderId = 1
+@storeId = 2
+@categoryId = 2
+@email = customer@example.com
+@password = replace-with-a-unique-password
+@verificationCode = 123456
+@newPassword = replace-with-a-new-unique-password
+
+### Register a customer (check that email for the confirmation code)
+POST {{BizSpace_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "displayName": "Example Customer",
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Confirm email and receive a JWT
+POST {{BizSpace_HostAddress}}/api/auth/verify-email
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "code": "{{verificationCode}}"
+}
+
+### Log in after confirming email
+POST {{BizSpace_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Resend email confirmation code
+POST {{BizSpace_HostAddress}}/api/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Request a password reset code
+POST {{BizSpace_HostAddress}}/api/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Resend a password reset code (wait 60 seconds between requests)
+POST {{BizSpace_HostAddress}}/api/auth/resend-password-reset
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Reset password using the email code
+POST {{BizSpace_HostAddress}}/api/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "code": "{{verificationCode}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### Change password while signed in
+POST {{BizSpace_HostAddress}}/api/auth/change-password
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{password}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### Publicly create a Store Manager account
+POST {{BizSpace_HostAddress}}/api/users/store-managers
+Content-Type: application/json
+
+{
+  "displayName": "Store Manager",
+  "email": "manager@example.com",
+  "password": "Password123"
+}
+
+### Confirm a newly created Store Manager's email
+POST {{BizSpace_HostAddress}}/api/auth/verify-email
+Content-Type: application/json
+
+{
+  "email": "manager@example.com",
+  "code": "{{verificationCode}}"
+}
+
+### Create a store as its Store Manager
+POST {{BizSpace_HostAddress}}/api/stores
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "name": "Example Shop",
+  "description": "A store managed by this account."
+}
+
+### Delete a store as its manager (or use adminToken for any store)
+DELETE {{BizSpace_HostAddress}}/api/stores/1
+Authorization: Bearer {{managerToken}}
+Accept: application/json
+
+### Public product catalogue, filtered and paginated
+GET {{BizSpace_HostAddress}}/api/products?search=demo&brand=Example&categoryId=1&storeId=1&minPrice=10&maxPrice=500&page=1&pageSize=20
+Accept: application/json
+
+### Product details
+GET {{BizSpace_HostAddress}}/api/products/{{productId}}
+Accept: application/json
+
+### Categories with nested children and products
+GET {{BizSpace_HostAddress}}/api/categories
+Accept: application/json
+
+### Create a global category as admin
+POST {{BizSpace_HostAddress}}/api/categories
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Fiction",
+  "parentId": null,
+  "description": "Fiction books",
+  "imageUrl": ""
+}
+
+### Update a global category as admin
+PUT {{BizSpace_HostAddress}}/api/categories/{{categoryId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Books",
+  "parentId": null,
+  "description": "Books and learning materials",
+  "imageUrl": ""
+}
+
+### Delete a global category as admin (only when it has no references)
+DELETE {{BizSpace_HostAddress}}/api/categories/{{categoryId}}
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Create a product in one of the manager's stores using a global category
+POST {{BizSpace_HostAddress}}/api/products
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "name": "Wireless Headphones",
+  "brand": "Example Audio",
+  "description": "Over-ear wireless headphones.",
+  "price": 120,
+  "discountPercent": 0,
+  "storeId": {{storeId}},
+  "categoryId": 1,
+  "stock": 25,
+  "minimumStockLevel": 5
+}
+
+### Register a customer (response includes a JWT)
+POST {{BizSpace_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "displayName": "Name Surname",
+  "email": "customer@example.com",
+  "password": "Password123"
+}
+
+### Login and copy data.token into @customerToken
+POST {{BizSpace_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@example.com",
+  "password": "Password123"
+}
+
+### Current customer's cart
+GET {{BizSpace_HostAddress}}/api/cart
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### Add a product to the cart
+POST {{BizSpace_HostAddress}}/api/cart/items
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "productId": {{productId}},
+  "quantity": 1
+}
+
+### Save an address to use by ID during checkout
+POST {{BizSpace_HostAddress}}/api/addresses
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "label": "Home",
+  "streetAddress": "1 Example Street",
+  "city": "Tbilisi",
+  "postalCode": "0100",
+  "country": "Georgia"
+}
+
+### Checkout by saved address ID (use either this or shippingAddress)
+POST {{BizSpace_HostAddress}}/api/orders?paymentMethod=CARD&deliveryMethod=COURIER
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "savedAddressId": 1
+}
+
+### Checkout by sending an address directly
+POST {{BizSpace_HostAddress}}/api/orders?paymentMethod=CARD&deliveryMethod=COURIER
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "shippingAddress": {
+    "streetAddress": "1 Example Street",
+    "city": "Tbilisi",
+    "postalCode": "0100",
+    "country": "Georgia"
+  }
+}
+
+### Create a store-manager scheduled campaign for several products
+POST {{BizSpace_HostAddress}}/api/store-manager/campaigns
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "name": "Headphone and speaker sale",
+  "description": "A shared discount for selected products.",
+  "discountPercent": 15,
+  "startsAtUtc": "2026-11-20T00:00:00Z",
+  "endsAtUtc": "2026-11-23T00:00:00Z",
+  "isEnabled": true,
+  "productIds": [1, 2]
+}
+
+### View the customer's orders
+GET {{BizSpace_HostAddress}}/api/orders
+Authorization: Bearer {{customerToken}}
+Accept: application/json
+
+### View orders containing products from the manager's stores
+GET {{BizSpace_HostAddress}}/api/orders
+Authorization: Bearer {{managerToken}}
+Accept: application/json
+
+### Update the status of an order containing the manager's products
+PUT {{BizSpace_HostAddress}}/api/orders/{{orderId}}/status?status=SHIPPED
+Authorization: Bearer {{managerToken}}
+Accept: application/json
+
+### Cancel an order containing the manager's products
+POST {{BizSpace_HostAddress}}/api/orders/{{orderId}}/cancel
+Authorization: Bearer {{managerToken}}
+Accept: application/json
+
+### View sales analytics for the manager's stores
+GET {{BizSpace_HostAddress}}/api/store-manager/analytics/sales
+Authorization: Bearer {{managerToken}}
+Accept: application/json
+
+### Update order status as admin
+PUT {{BizSpace_HostAddress}}/api/orders/{{orderId}}/status?status=SHIPPED
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+### Public product reviews
+GET {{BizSpace_HostAddress}}/api/products/{{productId}}/reviews
+Accept: application/json
+
+### Add one review per customer/product
+POST {{BizSpace_HostAddress}}/api/products/{{productId}}/reviews
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{
+  "rating": 5,
+  "comment": "Good product."
+}
