@@ -1,4 +1,4 @@
-# BizSpace
+# BizSpace.API
 
 BizSpace is an ASP.NET Core 10 e-commerce API with products, categories, stores, orders, customer accounts, and product images.
 
@@ -27,14 +27,14 @@ From the solution root:
 
 ```powershell
 dotnet restore
-dotnet run --project .\BizSpace\BizSpace.csproj --launch-profile https
+dotnet run --project .\BizSpace.API\BizSpace.API.csproj --launch-profile https
 ```
 
 Open Swagger at `/swagger`. When `Database:ApplyMigrations` is enabled, startup applies EF Core migrations and seeds the demo catalog, two store managers, and four stores. It does not seed customers or orders.
 
 ## Images
 
-Product and category image uploads use Cloudinary. Configure the Cloudinary values above before uploading. Demo image references and photo credits are in `BizSpace/Data/DemoCatalogImages.cs`;
+Product and category image uploads use Cloudinary. Configure the Cloudinary values above before uploading. Demo image references and photo credits are in `BizSpace.API/Data/DemoCatalogImages.cs`;
 
 ## Tests
 
@@ -48,11 +48,17 @@ The tests use temporary in-memory data; they do not need your SQL Server or Clou
 
 ## Migrations
 
-From the solution root, run EF commands from the API project directory:
+Run these commands from the solution root:
 
 ```powershell
-Push-Location .\BizSpace
-dotnet ef migrations add DescribeYourChange
-dotnet ef database update
-Pop-Location
+dotnet ef migrations add DescribeYourChange --project .\BizSpace.API\BizSpace.API.csproj --startup-project .\BizSpace.API\BizSpace.API.csproj --output-dir Data\Migrations
+dotnet ef database update --project .\BizSpace.API\BizSpace.API.csproj --startup-project .\BizSpace.API\BizSpace.API.csproj
 ```
+
+To generate an idempotent SQL script from the migrations for review or submission:
+
+```powershell
+dotnet ef migrations script --idempotent --project .\BizSpace.API\BizSpace.API.csproj --startup-project .\BizSpace.API\BizSpace.API.csproj --output .\BizSpace.Migrations.sql
+```
+
+This creates `BizSpace.Migrations.sql` in the solution root; it does not execute the script against a database. It contains schema migrations, not the demo records inserted by `DatabaseSeeder`.

@@ -3,7 +3,7 @@ services:
     image: ${DOCKER_REGISTRY-}bizspace
     build:
       context: .
-      dockerfile: BizSpace/Dockerfile
+      dockerfile: BizSpace.API/Dockerfile
     env_file:
       - .env
     environment:

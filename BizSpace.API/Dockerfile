@@ -11,19 +11,19 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["BizSpace/BizSpace.csproj", "BizSpace/"]
-RUN dotnet restore "./BizSpace/BizSpace.csproj"
+COPY ["BizSpace.API/BizSpace.API.csproj", "BizSpace.API/"]
+RUN dotnet restore "./BizSpace.API/BizSpace.API.csproj"
 COPY . .
-WORKDIR "/src/BizSpace"
-RUN dotnet build "./BizSpace.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/BizSpace.API"
+RUN dotnet build "./BizSpace.API.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./BizSpace.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./BizSpace.API.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "BizSpace.dll"]
+ENTRYPOINT ["dotnet", "BizSpace.API.dll"]
