@@ -153,10 +153,9 @@ public sealed class CreateOrderRequest : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if ((SavedAddressId.HasValue && ShippingAddress is not null) ||
-            (!SavedAddressId.HasValue && ShippingAddress is null))
+        if (SavedAddressId.HasValue && ShippingAddress is not null)
             yield return new ValidationResult(
-                "Provide either savedAddressId or shippingAddress, but not both.",
+                "Provide either savedAddressId or shippingAddress, but not both. Pickup orders may omit both.",
                 [nameof(SavedAddressId), nameof(ShippingAddress)]);
     }
 }

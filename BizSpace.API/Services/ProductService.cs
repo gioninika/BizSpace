@@ -1,3 +1,4 @@
+using System.Data;
 using BizSpace.Dtos;
 using BizSpace.Exceptions;
 using BizSpace.Models;
@@ -13,9 +14,15 @@ public sealed class ProductService(
     IGenericRepository<Store> stores,
     IGenericRepository<ProductImage> productImageRecords,
     IGenericRepository<ProductImageDeletionJob> imageDeletionJobs,
+    IGenericRepository<CartItem> cartItems,
+    IGenericRepository<OrderItem> orderItems,
+    IGenericRepository<WishlistItem> wishlistItems,
+    IGenericRepository<ProductReview> reviewRecords,
+    IGenericRepository<MarketingCampaignProduct> campaignProducts,
     INotificationService notifications,
     IPricingService pricing,
     IProductImageStorage imageStorage,
+    IUnitOfWork unitOfWork,
     ILogger<ProductService> logger) : IProductService
 {
     private const int MaxImagesPerProduct = 10;
@@ -121,6 +128,38 @@ public sealed class ProductService(
             await notifications.NotifyStoreManagerAsync(store.Id, NotificationType.LowStock, "Low stock",
                 $"{product.Name} has stock {product.Stock}, at or below its minimum level of {product.MinimumStockLevel}.", product.Id);
         return await ToDtoAsync(product);
+    }
+
+    public async Task DeleteAsync(int id, int callerId, bool isAdmin)
+    {
+        await using var transaction = unitOfWork.BeginTransaction(IsolationLevel.Serializable);
+        var product = await repository.Query.Include(x => x.Store).Include(x => x.Images)
+            .FirstOrDefaultAsync(x => x.Id == id)
+            ?? throw new KeyNotFoundException("Product was not found.");
+        if (!isAdmin && product.Store?.ManagerId != callerId)
+            throw new ForbiddenException("You can delete only products in your own stores.");
+
+        var productCartItems = await cartItems.Query.Where(x => x.ProductId == id).ToListAsync();
+        var productOrderItems = await orderItems.Query.Where(x => x.ProductId == id).ToListAsync();
+        var productWishlistItems = await wishlistItems.Query.Where(x => x.ProductId == id).ToListAsync();
+        var productReviewRecords = await reviewRecords.Query.Where(x => x.ProductId == id).ToListAsync();
+        var productCampaignLinks = await campaignProducts.Query.Where(x => x.ProductId == id).ToListAsync();
+
+        foreach (var image in product.Images.Where(image => !string.IsNullOrWhiteSpace(image.PublicId)))
+            await imageDeletionJobs.AddAsync(new ProductImageDeletionJob { PublicId = image.PublicId! });
+
+        cartItems.DeleteRange(productCartItems);
+        wishlistItems.DeleteRange(productWishlistItems);
+        reviewRecords.DeleteRange(productReviewRecords);
+        campaignProducts.DeleteRange(productCampaignLinks);
+        foreach (var orderItem in productOrderItems)
+            orderItem.ProductId = null;
+
+        // Keep order snapshots while removing the references that would prevent product deletion.
+        await unitOfWork.SaveChangesAsync();
+        repository.Delete(product);
+        await unitOfWork.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public async Task<ProductImageDto> UploadImageAsync(

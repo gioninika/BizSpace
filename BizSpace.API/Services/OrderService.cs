@@ -60,7 +60,7 @@ public sealed class OrderService(
         PaymentMethod paymentMethod,
         DeliveryMethod deliveryMethod)
     {
-        var shippingAddress = await ResolveShippingAddressAsync(userId, request);
+        var shippingAddress = await ResolveShippingAddressAsync(userId, request, deliveryMethod);
         await using var transaction = unitOfWork.BeginTransaction(IsolationLevel.Serializable);
         var cart = await carts.Query.Include(x => x.Items).ThenInclude(x => x.Product)
             .ThenInclude(x => x!.Store)
@@ -132,7 +132,7 @@ public sealed class OrderService(
         return ToDto(order);
     }
 
-    private async Task<ShippingAddressRequest> ResolveShippingAddressAsync(int userId, CreateOrderRequest request)
+    private async Task<ShippingAddressRequest> ResolveShippingAddressAsync(int userId, CreateOrderRequest request, DeliveryMethod deliveryMethod)
     {
         if (request.SavedAddressId is int addressId)
         {
@@ -147,8 +147,9 @@ public sealed class OrderService(
             };
         }
 
-        return request.ShippingAddress
-            ?? throw new ArgumentException("Provide a saved address or a shipping address.");
+        if (request.ShippingAddress is not null) return request.ShippingAddress;
+        if (deliveryMethod == DeliveryMethod.Pickup) return new ShippingAddressRequest();
+        throw new ArgumentException("Courier delivery requires a saved address or a shipping address.");
     }
 
     public async Task<OrderDto> UpdateStatusAsync(int id, OrderStatus nextStatus, int? managerId = null)

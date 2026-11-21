@@ -33,6 +33,14 @@ public sealed class ProductsController(IProductService products, IProductReviewS
     public async Task<ActionResult<ApiResponse<ProductDto>>> Update(int id, UpdateProductRequest request) =>
         Ok(ApiResponse<ProductDto>.Ok(await products.UpdateAsync(id, request, CurrentUserId), "Product updated."));
 
+    [Authorize(Roles = UserRoles.Admin + "," + UserRoles.StoreManager)]
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
+    {
+        await products.DeleteAsync(id, CurrentUserId, IsAdmin());
+        return Ok(ApiResponse<object>.Ok(new { }, "Product deleted."));
+    }
+
     [Authorize(Roles = UserRoles.StoreManager)]
     [HttpPost("{id:int}/images")]
     [Consumes("multipart/form-data")]

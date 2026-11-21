@@ -31,6 +31,7 @@ public interface IProductService
     Task<ProductDto> GetByIdAsync(int id);
     Task<ProductDto> CreateAsync(CreateProductRequest request, int managerId);
     Task<ProductDto> UpdateAsync(int id, UpdateProductRequest request, int managerId);
+    Task DeleteAsync(int id, int callerId, bool isAdmin);
     Task<ProductImageDto> UploadImageAsync(int id, Stream content, long contentLength, string contentType, int managerId, CancellationToken cancellationToken = default);
     Task<List<ProductImageDto>> ReorderImagesAsync(int id, ReorderProductImagesRequest request, int managerId);
     Task DeleteImageAsync(int id, int imageId, int managerId);
