@@ -1,0 +1,191 @@
+<header class="topbar">
+  <a
+    class="brand"
+    href="#top"
+    aria-label="BizSpace home"
+    (click)="
+      $event.preventDefault();
+      requestSection(
+        state.role() === 'Customer' || !auth.isAuthenticated() ? 'Discover' : 'Overview'
+      )
+    "
+  >
+    <span class="brand-mark">b<span>.</span></span
+    ><span class="brand-name">bizspace</span>
+  </a>
+  @if (state.role() === 'Customer' || !auth.isAuthenticated()) {
+    <nav class="store-nav" aria-label="Store navigation">
+      @for (item of customerNav; track item) {
+        <button
+          class="store-nav-link"
+          [class.active]="isNavActive(item)"
+          (click)="requestSection(item)"
+        >
+          {{ item === 'Shop' ? 'Products' : item }}
+        </button>
+      }
+    </nav>
+  } @else if (state.role() === 'StoreManager') {
+    <label class="topbar-context store-context">
+      <span class="context-dot"></span>
+      @if (state.myStores().length) {
+        <select
+          aria-label="Select store"
+          [value]="state.selectedStoreId()"
+          (change)="state.setSelectedStore(+$any($event.target).value)"
+        >
+          @for (store of state.myStores(); track store.id) {
+            <option [value]="store.id">{{ store.name }}</option>
+          }
+        </select>
+      } @else {
+        <span>No store yet</span>
+      }
+    </label>
+  } @else {
+    <div class="topbar-context">
+      <span class="context-dot"></span><span>Platform workspace</span>
+    </div>
+  }
+
+  <div class="topbar-actions">
+    @if (auth.isAuthenticated()) {
+      <div class="notification-anchor">
+        <button
+          class="icon-button notification-button"
+          aria-label="Notifications"
+          [attr.aria-expanded]="notificationPanelOpen()"
+          (click)="switchNotificationPanel()"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"></path>
+          </svg>
+          @if (state.unreadNotifications()) {
+            <span class="notification-dot"></span>
+          }
+        </button>
+        @if (notificationPanelOpen()) {
+          <section class="notification-popover">
+            <div class="notification-popover-head">
+              <strong>Messages & notifications</strong
+              ><span>{{ state.unreadNotifications() }} unread</span>
+            </div>
+            <div class="notification-popover-tools">
+              <button
+                type="button"
+                [class.active]="notificationUnreadOnly()"
+                [attr.aria-pressed]="notificationUnreadOnly()"
+                (click)="toggleUnreadOnlyNotifications()"
+              >
+                {{ notificationUnreadOnly() ? 'Show all' : 'Unread only' }}
+              </button>
+            </div>
+            @for (item of visibleNotifications(); track item.id) {
+              <button
+                class="notification-item"
+                [class.unread]="!item.isRead"
+                (click)="readNotification(item.id)"
+              >
+                <span class="notification-indicator"></span
+                ><span
+                  ><strong>{{ item.title }}</strong
+                  ><small>{{ item.message }}</small
+                  ><time>{{ formatDate(item.createdAtUtc) }}</time></span
+                >
+              </button>
+            } @empty {
+              <p class="notification-empty">
+                {{ notificationUnreadOnly() ? 'No unread messages.' : 'You’re all caught up.' }}
+              </p>
+            }
+          </section>
+        }
+      </div>
+    }
+    @if (state.role() === 'Customer' || !auth.isAuthenticated()) {
+      @if (auth.isAuthenticated()) {
+        <div class="profile-anchor">
+          <button
+            class="icon-button account-button"
+            aria-label="Account menu"
+            [attr.aria-expanded]="accountMenuOpen()"
+            (click)="toggleAccountMenu()"
+          >
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="3.3"></circle>
+              <path d="M5.2 20c.5-3.5 3.1-5.4 6.8-5.4s6.3 1.9 6.8 5.4"></path>
+            </svg>
+          </button>
+          @if (accountMenuOpen()) {
+            <section class="profile-popover">
+              <div class="profile-popover-user">
+                <span class="avatar avatar-gold">{{
+                  (state.currentUser()?.displayName || 'U').charAt(0)
+                }}</span
+                ><span
+                  ><strong>{{
+                    state.currentUser()?.displayName || state.currentUser()?.email
+                  }}</strong
+                  ><small>{{ prettyRole() }}</small></span
+                >
+              </div>
+              <button class="profile-menu-item" (click)="requestSection('Profile')">
+                Profile <span>↗</span></button
+              ><button class="profile-menu-item" (click)="requestSection('Address book')">
+                Address book <span>↗</span></button
+              ><button class="profile-menu-logout" (click)="requestLogout()">Sign out</button>
+            </section>
+          }
+        </div>
+      } @else {
+        <button class="header-auth-link" (click)="requestAuth('login')">Sign in</button
+        ><button class="header-auth-button" (click)="requestAuth('register')">
+          Create account
+        </button>
+      }
+      <button class="icon-button bag-button" aria-label="Open shopping bag" (click)="requestCart()">
+        <svg viewBox="0 0 24 24">
+          <path d="M5.5 8h13l1 12h-15l1-12Z"></path>
+          <path d="M9 9V6a3 3 0 0 1 6 0v3"></path>
+        </svg>
+        @if (state.cartCount() > 0) {
+          <span class="bag-count">{{ state.cartCount() }}</span>
+        }
+      </button>
+    } @else {
+      <span class="topbar-divider"></span>
+      <div class="profile-anchor">
+        <button
+          class="profile-chip"
+          aria-label="Account menu"
+          [attr.aria-expanded]="accountMenuOpen()"
+          (click)="toggleAccountMenu()"
+        >
+          <span class="avatar avatar-gold">{{
+            (state.currentUser()?.displayName || 'U').charAt(0)
+          }}</span
+          ><span class="profile-name">{{
+            state.currentUser()?.displayName || state.currentUser()?.email
+          }}</span
+          ><span class="context-chevron">⌄</span>
+        </button>
+        @if (accountMenuOpen()) {
+          <section class="profile-popover">
+            <div class="profile-popover-user">
+              <span class="avatar avatar-gold">{{
+                (state.currentUser()?.displayName || 'U').charAt(0)
+              }}</span
+              ><span
+                ><strong>{{
+                  state.currentUser()?.displayName || state.currentUser()?.email
+                }}</strong
+                ><small>{{ prettyRole() }}</small></span
+              >
+            </div>
+            <button class="profile-menu-logout" (click)="requestLogout()">Sign out</button>
+          </section>
+        }
+      </div>
+    }
+  </div>
+</header>

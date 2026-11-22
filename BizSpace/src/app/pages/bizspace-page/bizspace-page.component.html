@@ -1,0 +1,1844 @@
+<div
+  class="app-shell"
+  [class.customer-mode]="state.role() === 'Customer' || !auth.isAuthenticated()"
+>
+  <app-header
+    (sectionSelected)="chooseSection($event)"
+    (authRequested)="openAuth($event)"
+    (logoutRequested)="logout()"
+    (cartRequested)="openCart()"
+  ></app-header>
+
+  @if (state.role() === 'Customer' || !auth.isAuthenticated()) {
+    <main class="storefront" id="top">
+      <router-outlet></router-outlet>
+      <app-store-footer></app-store-footer>
+    </main>
+  } @else {
+    <div class="workspace-layout">
+      <aside class="workspace-sidebar">
+        <div class="sidebar-overline">
+          {{ state.role() === 'Admin' ? 'PLATFORM' : 'YOUR BUSINESS' }}
+        </div>
+        <nav aria-label="Workspace navigation">
+          @for (item of navItems(); track item) {
+            <button
+              class="workspace-nav-item"
+              [class.active]="isNavActive(item)"
+              (click)="chooseSection(item)"
+            >
+              <span class="nav-icon">
+                @if (item === 'Overview') {
+                  <svg viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                    <rect x="14" y="3" width="7" height="4" rx="1"></rect>
+                    <rect x="14" y="10" width="7" height="11" rx="1"></rect>
+                    <rect x="3" y="13" width="7" height="8" rx="1"></rect>
+                  </svg>
+                } @else if (item === 'Products') {
+                  <svg viewBox="0 0 24 24">
+                    <path d="m12 3 9 5v8l-9 5-9-5V8l9-5Z"></path>
+                    <path d="m3.5 8.2 8.5 5 8.5-5M12 13v8"></path>
+                  </svg>
+                } @else if (item === 'Orders') {
+                  <svg viewBox="0 0 24 24">
+                    <path d="M5 4h14v17H5zM9 8h6M9 12h6M9 16h4"></path>
+                    <path d="M8 4V2h8v2"></path>
+                  </svg>
+                } @else if (item === 'Campaigns') {
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 14V9l13-4v13L4 14Z"></path>
+                    <path d="m7 15 2 6h4l-2-5M20 9v5"></path>
+                  </svg>
+                } @else if (item === 'Stores') {
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 10h16v11H4zM3 10l2-6h14l2 6M9 21v-6h6v6"></path>
+                  </svg>
+                } @else if (item === 'Customers') {
+                  <svg viewBox="0 0 24 24">
+                    <circle cx="9" cy="8" r="3"></circle>
+                    <path
+                      d="M3 20c.5-3.3 2.5-5 6-5s5.5 1.7 6 5M16 5.2a3 3 0 0 1 0 5.6M17 15c2.3.4 3.6 2 4 5"
+                    ></path>
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 5h16v4H4zM4 11h7v8H4zM14 11h6v8h-6z"></path>
+                  </svg>
+                }</span
+              ><span>{{ item }}</span>
+              @if (item === 'Orders' && state.openOrders().length) {
+                <span class="nav-count">{{ state.openOrders().length }}</span>
+              }
+              @if (item === 'Products' && state.lowStockProducts().length) {
+                <span class="nav-alert"></span>
+              }
+            </button>
+          }
+        </nav>
+        @if (state.role() === 'StoreManager') {
+          <div class="sidebar-store-card">
+            <span class="store-avatar">{{ state.selectedStore()?.name?.charAt(0) || '+' }}</span>
+            <div>
+              <strong>{{ state.selectedStore()?.name || 'No store selected' }}</strong><span
+                >{{ state.myStores().length }}
+                {{ state.myStores().length === 1 ? 'store' : 'stores' }}</span
+              >
+            </div>
+            <button
+              aria-label="Add product"
+              title="Add product"
+              [disabled]="!state.selectedStoreId() || !state.categories().length"
+              (click)="openProductModal()"
+            >
+              +
+            </button>
+          </div>
+        }
+      </aside>
+
+      <main class="workspace-main">
+        <div class="workspace-heading">
+          <div>
+            <div class="eyebrow workspace-date">
+              <span class="eyebrow-line"></span>
+              {{
+                state.role() === 'Admin'
+                  ? 'BIZSPACE MARKETPLACE'
+                  : state.selectedStore()?.name || 'STORE WORKSPACE'
+              }}
+            </div>
+            <h1>
+              {{
+                state.section() === 'Overview'
+                  ? state.role() === 'Admin'
+                    ? 'Marketplace overview'
+                    : 'Your store, at a glance'
+                  : state.section()
+              }}<span class="gold-period">.</span>
+            </h1>
+            <p>
+              {{
+                state.section() === 'Overview'
+                  ? state.role() === 'Admin'
+                    ? 'A live view of activity across BizSpace.'
+                    : 'A live view of your store and its orders.'
+                  : state.section() === 'Products'
+                    ? 'Manage the products in your stores.'
+                    : state.section() === 'Orders'
+                      ? 'Keep every order moving along.'
+                      : state.section() === 'Campaigns'
+                        ? 'Create and manage your store promotions.'
+                        : `Manage ${state.section().toLowerCase()} across BizSpace.`
+              }}
+            </p>
+          </div>
+          <div class="workspace-heading-actions">
+            @if (state.role() === 'StoreManager' && state.section() === 'Products') {
+              <button
+                class="button button-dark"
+                [disabled]="!state.selectedStoreId() || !state.categories().length"
+                (click)="openProductModal()"
+              >
+                <span class="button-plus">+</span> Add product
+              </button>
+            } @else if (state.role() === 'StoreManager' && state.section() === 'Overview') {
+              <button class="button button-dark" (click)="openStoreModal()">
+                <span class="button-plus">+</span> Add store
+              </button>
+            } @else if (state.role() === 'StoreManager' && state.section() === 'Campaigns') {
+              <button class="button button-dark" (click)="openCampaignModal()">
+                <span class="button-plus">+</span> Create campaign
+              </button>
+            } @else if (state.role() === 'Admin' && state.section() === 'Categories') {
+              <button class="button button-dark" (click)="openCategoryModal()">
+                <span class="button-plus">+</span> Add category
+              </button>
+            } @else if (state.section() === 'Overview' && state.analytics()) {
+              <button class="button button-outline" (click)="exportAnalytics()">
+                <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"></path></svg>
+                Export report
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (state.apiError()) {
+          <div class="workspace-error">
+            <span>!</span><span>{{ state.apiError() }}</span
+            ><button (click)="state.loadWorkspace()">Retry</button>
+          </div>
+        }
+        @if (state.loading()) {
+          <div class="loading-state workspace-loading">
+            <span class="loading-spinner"></span><span>Loading your workspace…</span>
+          </div>
+        }
+
+        @if (state.role() === 'StoreManager' && state.section() === 'Overview') {
+          @if (!state.myStores().length && !state.loading()) {
+            <section class="empty-workspace">
+              <div>⌂</div>
+              <h2>Start with your store.</h2>
+              <p>Create a store to add products and manage your sales from BizSpace.</p>
+              <button class="button button-dark" (click)="openStoreModal()">
+                Create your store <span>↗</span>
+              </button>
+            </section>
+          } @else {
+            <div class="metric-grid manager-metrics">
+              <article class="metric-card">
+                <div class="metric-topline">
+                  <span>Revenue</span><span class="metric-icon gold-icon">↗</span>
+                </div>
+                <strong>{{ formatMoney(state.analytics()?.revenue ?? 0) }}</strong>
+                <div class="metric-foot">{{ state.analytics()?.paidOrders ?? 0 }} paid orders</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-topline">
+                  <span>Orders</span><span class="metric-icon lavender-icon">⌑</span>
+                </div>
+                <strong>{{ state.analytics()?.totalOrders ?? state.orders().length }}</strong>
+                <div class="metric-foot">{{ state.openOrders().length }} in progress</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-topline">
+                  <span>Average order value</span><span class="metric-icon blue-icon">◌</span>
+                </div>
+                <strong>{{ formatMoney(state.analytics()?.averageOrderValue ?? 0) }}</strong>
+                <div class="metric-foot">From the selected reporting range</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-topline">
+                  <span>Units sold</span><span class="metric-icon sage-icon">◎</span>
+                </div>
+                <strong>{{ state.analytics()?.unitsSold ?? 0 }}</strong>
+                <div class="metric-foot">
+                  {{ state.myStores().length }} managed
+                  {{ state.myStores().length === 1 ? 'store' : 'stores' }}
+                </div>
+              </article>
+            </div>
+            <div class="dashboard-grid">
+              <section class="panel sales-panel">
+                <div class="panel-heading">
+                  <div>
+                    <span class="eyebrow">BEST SELLERS</span>
+                    <h2>Top products</h2>
+                  </div>
+                  <button class="text-link" (click)="chooseSection('Products')">
+                    Inventory <span>↗</span>
+                  </button>
+                </div>
+                <div class="top-products-list">
+                  @for (
+                    product of state.analytics()?.topProducts ?? [];
+                    track product.productName
+                  ) {
+                    <div class="top-product-row">
+                      <span class="top-product-rank">{{ $index + 1 }}</span><strong>{{
+                        product.productName
+                      }}</strong
+                      ><span>{{ product.quantitySold }} sold</span
+                      ><b>{{ formatMoney(product.revenue) }}</b>
+                    </div>
+                  } @empty {
+                    <div class="panel-empty">
+                      Sales analytics will appear when your store has orders.
+                    </div>
+                  }
+                </div>
+              </section>
+              <section class="panel activity-panel">
+                <div class="panel-heading">
+                  <div>
+                    <span class="eyebrow">LATEST ACTIVITY</span>
+                    <h2>Recent orders</h2>
+                  </div>
+                  <button class="text-link" (click)="chooseSection('Orders')">
+                    All orders <span>↗</span>
+                  </button>
+                </div>
+                <div class="activity-list">
+                  @for (order of state.orders().slice(0, 5); track order.id) {
+                    <article class="activity-row">
+                      <span class="activity-avatar">{{
+                        customerName(order.userId).charAt(0)
+                      }}</span>
+                      <div class="activity-copy">
+                        <strong>{{ customerName(order.userId) }}</strong><span
+                          >Order #{{ order.id }} · {{ order.items.length }} items</span
+                        >
+                      </div>
+                      <div class="activity-amount">
+                        <strong>{{ formatMoney(order.totalAmount) }}</strong><span>{{
+                          displayStatus(order.status)
+                        }}</span>
+                      </div>
+                    </article>
+                  } @empty {
+                    <div class="panel-empty">New orders will show up here.</div>
+                  }
+                </div>
+              </section>
+            </div>
+            <section class="panel low-stock-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">INVENTORY</span>
+                  <h2>Running low</h2>
+                </div>
+                <button class="text-link" (click)="chooseSection('Products')">
+                  Manage products <span>↗</span>
+                </button>
+              </div>
+              <div class="low-stock-list">
+                @for (product of state.lowStockProducts(); track product.id) {
+                  <article class="low-stock-item">
+                    @if (product.imageUrl) {
+                      <img [src]="product.imageUrl" [alt]="product.name" />
+                    } @else {
+                      <span class="low-stock-image-empty">{{
+                        categoryIcon(product.categoryName)
+                      }}</span>
+                    }
+                    <div>
+                      <strong>{{ product.name }}</strong><span>{{ product.categoryName }}</span>
+                    </div>
+                    <span class="stock-alert"><i></i> {{ product.stock }} left</span
+                    ><button class="quiet-button" (click)="openProductModal(product)">
+                      Edit stock <span>↗</span>
+                    </button>
+                  </article>
+                } @empty {
+                  <p class="panel-empty">No products are at or below their minimum stock level.</p>
+                }
+              </div>
+            </section>
+          }
+        } @else if (state.role() === 'StoreManager' && state.section() === 'Products') {
+          <section class="panel data-panel">
+            <div class="table-toolbar">
+              <div class="filter-row">
+                <button class="filter-chip active">
+                  Products <span>{{ state.productResults().length }}</span></button
+                ><button
+                  class="filter-chip"
+                  (click)="state.setSearch(''); state.clearProductFilters()"
+                >
+                  Clear filters
+                </button>
+              </div>
+              <label class="search-box table-search"
+                ><svg viewBox="0 0 24 24">
+                  <circle cx="10.8" cy="10.8" r="6.8"></circle>
+                  <path d="m16 16 4.3 4.3"></path></svg
+                ><input
+                  type="search"
+                  placeholder="Search products"
+                  [value]="state.search()"
+                  (input)="state.setSearch($any($event.target).value)"
+              /></label>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>PRODUCT</th>
+                    <th>STATUS</th>
+                    <th>INVENTORY</th>
+                    <th>PRICE</th>
+                    <th>REVIEWS</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (product of state.productResults(); track product.id) {
+                    <tr>
+                      <td>
+                        <div class="table-product">
+                          @if (product.imageUrl) {
+                            <img [src]="product.imageUrl" [alt]="product.name" />
+                          } @else {
+                            <span class="table-image-empty">{{
+                              categoryIcon(product.categoryName)
+                            }}</span>
+                          }
+                          <div>
+                            <strong>{{ product.name }}</strong><span
+                              >{{ product.brand }} · {{ product.categoryName }}</span
+                            >
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="status-pill status-active"><i></i> Active</span>
+                      </td>
+                      <td>
+                        <span [class.low-number]="product.stock <= product.minimumStockLevel"
+                          >{{ product.stock }} in stock</span
+                        >
+                      </td>
+                      <td>{{ formatMoney(product.effectivePrice) }}</td>
+                      <td>{{ product.reviewCount }}</td>
+                      <td>
+                        <button
+                          class="row-more"
+                          aria-label="Edit product"
+                          (click)="openProductModal(product)"
+                        >
+                          Edit</button
+                        ><button
+                          class="row-more danger-link"
+                          aria-label="Delete {{ product.name }}"
+                          title="Delete product"
+                          (click)="removeProduct(product)"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="table-empty">No products in this store yet.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="table-bottom">
+              <span>{{ state.productResults().length }} products in the selected store</span>
+            </div>
+          </section>
+        } @else if (state.role() === 'StoreManager' && state.section() === 'Reviews') {
+          <section class="panel data-panel manager-reviews-panel">
+            <div class="manager-review-toolbar">
+              <label>
+                PRODUCT
+                <select [value]="managerReviewProductId() ?? ''" (change)="setManagerReviewProductFilter($any($event.target).value)">
+                  <option value="">All products</option>
+                  @for (product of state.productViews(); track product.id) {
+                    <option [value]="product.id">{{ product.name }} · {{ product.storeName }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                STAR RATING
+                <select [value]="managerReviewStarFilter() ?? ''" (change)="setManagerReviewStarFilter($any($event.target).value)">
+                  <option value="">All ratings</option>
+                  @for (rating of starOptions; track rating) {
+                    <option [value]="rating">{{ rating }} {{ rating === 1 ? 'star' : 'stars' }}</option>
+                  }
+                </select>
+              </label>
+              <span class="manager-review-count">{{ filteredManagerReviews().length }} {{ filteredManagerReviews().length === 1 ? 'review' : 'reviews' }}</span>
+              <button class="button button-outline manager-review-refresh" (click)="loadManagerReviews()" [disabled]="managerReviewsLoading()">Refresh</button>
+            </div>
+            @if (managerReviewsLoading()) {
+              <p class="product-reviews-message">Loading reviews from your stores…</p>
+            } @else if (managerReviewsError()) {
+              <div class="product-reviews-error"><p>{{ managerReviewsError() }}</p><button class="text-link" (click)="loadManagerReviews()">Try again</button></div>
+            } @else {
+              <div class="manager-review-list">
+                @for (review of filteredManagerReviews(); track review.id) {
+                  <article class="manager-review-card">
+                    <div class="manager-review-product">
+                      <span class="eyebrow">{{ review.storeName || 'YOUR STORE' }}</span>
+                      <strong>{{ review.productName }}</strong>
+                    </div>
+                    <div class="product-review-card-heading">
+                      <div class="product-review-author"><span class="avatar avatar-gold">{{ review.displayName.charAt(0) }}</span><span><strong>{{ review.displayName }}</strong><time>{{ formatDate(review.createdAtUtc) }}</time></span></div>
+                      <span class="product-review-stars" [attr.aria-label]="review.rating + ' out of 5 stars'">{{ reviewStars(review.rating) }}</span>
+                    </div>
+                    <p>{{ review.comment || 'No written comment.' }}</p>
+                  </article>
+                } @empty {
+                  <div class="product-reviews-empty"><span>✳</span><h2>{{ state.productViews().length ? 'No reviews match these filters.' : 'No products to review yet.' }}</h2><p>{{ state.productViews().length ? 'Try another product or star rating.' : 'Reviews for your products will appear here.' }}</p></div>
+                }
+              </div>
+            }
+          </section>
+        } @else if (state.role() === 'StoreManager' && state.section() === 'Orders') {
+          <section class="panel data-panel">
+            <div class="table-toolbar">
+              <div class="filter-row">
+                <span class="filter-chip active">{{ state.orders().length }} orders</span
+                ><span class="filter-chip">{{ state.openOrders().length }} in progress</span>
+              </div>
+              <label class="search-box table-search"
+                ><svg viewBox="0 0 24 24">
+                  <circle cx="10.8" cy="10.8" r="6.8"></circle>
+                  <path d="m16 16 4.3 4.3"></path></svg
+                ><input
+                  type="search"
+                  placeholder="Search orders"
+                  [value]="state.orderSearch()"
+                  (input)="state.orderSearch.set($any($event.target).value)"
+              /></label>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ORDER</th>
+                    <th>DATE</th>
+                    <th>CUSTOMER</th>
+                    <th>STATUS</th>
+                    <th>TOTAL</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (order of state.filteredOrders(); track order.id) {
+                    <tr>
+                      <td>
+                        <strong class="order-number">#{{ order.id }}</strong
+                        ><span class="table-subline"
+                          >{{ order.items.length }}
+                          {{ order.items.length === 1 ? 'item' : 'items' }}</span
+                        >
+                        <button class="order-details-toggle" [attr.aria-expanded]="isOrderExpanded(order.id)" (click)="toggleOrderDetails(order.id)">
+                          {{ isOrderExpanded(order.id) ? 'Hide details' : 'View details' }} <span>{{ isOrderExpanded(order.id) ? '⌃' : '⌄' }}</span>
+                        </button>
+                      </td>
+                      <td>{{ formatDate(order.createdAtUtc) }}</td>
+                      <td>{{ customerName(order.userId) }}</td>
+                      <td>
+                        <span [class]="statusClass(order.status)">{{
+                          displayStatus(order.status)
+                        }}</span>
+                      </td>
+                      <td>
+                        <strong>{{ formatMoney(order.totalAmount) }}</strong>
+                      </td>
+                      <td>
+                        @if (nextOrderStatus(order.status); as nextStatus) {
+                          <button class="quiet-button" (click)="advanceOrder(order.id, nextStatus)">
+                            {{ nextOrderAction(order.status) }} <span>↗</span>
+                          </button>
+                        }
+                        @if (canCancelOrder(order.status)) {
+                          <button class="quiet-button danger-link" (click)="cancelOrder(order.id)">
+                            Cancel
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                    @if (isOrderExpanded(order.id)) {
+                      <tr class="order-details-row">
+                        <td colspan="6">
+                          <div class="order-detail-panel">
+                            <div class="order-detail-contact">
+                              <span class="eyebrow">CUSTOMER</span>
+                              <strong>{{ customerName(order.userId) }}</strong>
+                              <span>{{ customerEmail(order.userId) }}</span>
+                            </div>
+                            <div class="order-detail-address">
+                              <span class="eyebrow">DELIVERY ADDRESS</span>
+                              <span>{{ orderAddress(order) }}</span>
+                            </div>
+                            <div class="order-detail-products">
+                              <span class="eyebrow">PRODUCTS ORDERED</span>
+                              @for (item of order.items; track $index) {
+                                <div class="order-product-line">
+                                  @if (orderItemImage(item); as imageUrl) {
+                                    <img [src]="imageUrl" [alt]="item.productName" />
+                                  } @else {
+                                    <span class="order-product-image-empty">✳</span>
+                                  }
+                                  <span class="order-product-name">{{ item.productName }} × {{ item.quantity }}</span>
+                                  <strong>{{ formatMoney(item.lineTotal) }}</strong>
+                                </div>
+                              } @empty {
+                                <span>No products were returned for this order.</span>
+                              }
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="table-empty">No orders match your search.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        } @else if (state.role() === 'StoreManager' && state.section() === 'Campaigns') {
+          <section class="campaign-grid">
+            @for (campaign of state.campaigns(); track campaign.id) {
+              <article class="campaign-card">
+                <div class="campaign-card-head">
+                  <span class="campaign-tag">{{ campaign.discountPercent }}% OFF</span
+                  ><span
+                    [class]="
+                      'status-pill ' +
+                      (campaign.isCurrentlyActive ? 'status-active' : 'status-pending')
+                    "
+                    >{{
+                      campaign.isCurrentlyActive
+                        ? 'Active'
+                        : campaign.isEnabled
+                          ? 'Scheduled'
+                          : 'Paused'
+                    }}</span
+                  >
+                </div>
+                <h2>{{ campaign.name }}</h2>
+                <p>{{ campaign.description || 'No campaign description.' }}</p>
+                <div class="campaign-data">
+                  <div>
+                    <span>Starts</span><strong>{{ formatDate(campaign.startsAtUtc) }}</strong>
+                  </div>
+                  <div>
+                    <span>Ends</span><strong>{{ formatDate(campaign.endsAtUtc) }}</strong>
+                  </div>
+                  <div>
+                    <span>Products</span><strong>{{ campaign.productIds.length }}</strong>
+                  </div>
+                </div>
+                <div class="campaign-actions">
+                  <button class="button button-outline" (click)="openCampaignModal(campaign)">
+                    Edit campaign</button
+                  ><button class="quiet-button danger-link" (click)="removeCampaign(campaign)">
+                    Delete
+                  </button>
+                </div>
+              </article>
+            } @empty {
+              <div class="empty-workspace">
+                <div>✳</div>
+                <h2>No campaigns yet.</h2>
+                <p>Create a promotion for products in your store.</p>
+                <button class="button button-dark" (click)="openCampaignModal()">
+                  Create campaign
+                </button>
+              </div>
+            }
+          </section>
+        } @else if (state.role() === 'Admin' && state.section() === 'Products') {
+          <section class="panel data-panel">
+            <div class="catalog-toolbar admin-product-filters">
+              <div class="filter-row">
+                <button
+                  class="filter-chip"
+                  [class.active]="!state.categoryId()"
+                  (click)="state.setCategory(0)"
+                >
+                  All
+                </button>
+                @for (category of state.topLevelCategories(); track category.id) {
+                  <button
+                    class="filter-chip"
+                    [class.active]="state.categoryId() === category.id"
+                    (click)="state.setCategory(category.id)"
+                  >
+                    {{ category.name }}
+                  </button>
+                }
+                <span class="admin-product-filter-count"
+                  >{{ state.productResults().length }} products</span
+                >
+              </div>
+              <label class="search-box catalog-search"
+                ><svg viewBox="0 0 24 24">
+                  <circle cx="10.8" cy="10.8" r="6.8"></circle>
+                  <path d="m16 16 4.3 4.3"></path></svg
+                ><input
+                  type="search"
+                  placeholder="Search marketplace products"
+                  [value]="state.search()"
+                  (input)="state.setSearch($any($event.target).value)"
+              /></label>
+              <div class="product-filter-controls">
+                <label class="product-filter-field subcategory-filter"
+                  >Subcategory<select
+                    [value]="state.subcategoryId() ?? ''"
+                    (change)="state.setSubcategory(+$any($event.target).value)"
+                  >
+                    <option value="">All subcategories</option>
+                    @for (category of state.filterSubcategories(); track category.id) {
+                      <option [value]="category.id">{{ categoryPath(category.id) }}</option>
+                    }
+                  </select></label
+                ><label class="product-filter-field"
+                  >Brand<select
+                    [value]="state.brandFilter()"
+                    (change)="state.setBrandFilter($any($event.target).value)"
+                  >
+                    <option value="">All brands</option>
+                    @for (brand of state.brandOptions(); track brand) {
+                      <option [value]="brand">{{ brand }}</option>
+                    }
+                  </select></label
+                ><label class="product-filter-field"
+                  >Min price<input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0"
+                    [value]="state.minPrice() ?? ''"
+                    (input)="
+                      state.setMinPrice(
+                        $any($event.target).value === '' ? null : +$any($event.target).value
+                      )
+                    " /></label
+                ><label class="product-filter-field"
+                  >Max price<input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Any"
+                    [value]="state.maxPrice() ?? ''"
+                    (input)="
+                      state.setMaxPrice(
+                        $any($event.target).value === '' ? null : +$any($event.target).value
+                      )
+                    " /></label
+                ><button
+                  class="product-filter-clear"
+                  (click)="state.setSearch(''); state.clearProductFilters()"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>PRODUCT</th>
+                    <th>STORE</th>
+                    <th>INVENTORY</th>
+                    <th>PRICE</th>
+                    <th>REVIEWS</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (product of state.productResults(); track product.id) {
+                    <tr>
+                      <td>
+                        <div class="table-product">
+                          @if (product.imageUrl) {
+                            <img [src]="product.imageUrl" [alt]="product.name" />
+                          } @else {
+                            <span class="table-image-empty">{{
+                              categoryIcon(product.categoryName)
+                            }}</span>
+                          }
+                          <div>
+                            <strong>{{ product.name }}</strong><span
+                              >{{ product.brand }} · {{ product.categoryName }}</span
+                            >
+                          </div>
+                        </div>
+                      </td>
+                      <td>{{ product.storeName || '—' }}</td>
+                      <td>
+                        <span [class.low-number]="product.stock <= product.minimumStockLevel"
+                          >{{ product.stock }} in stock</span
+                        >
+                      </td>
+                      <td>{{ formatMoney(product.effectivePrice) }}</td>
+                      <td>{{ product.reviewCount }}</td>
+                      <td>
+                        <button
+                          class="row-more danger-link"
+                          aria-label="Delete {{ product.name }}"
+                          title="Delete product"
+                          (click)="removeProduct(product)"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="table-empty">No products match your search.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="table-bottom">
+              <span>{{ state.productResults().length }} products across the marketplace</span>
+            </div>
+          </section>
+        } @else if (state.role() === 'Admin' && state.section() === 'Overview') {
+          <div class="metric-grid admin-metrics">
+            <article class="metric-card">
+              <div class="metric-topline">
+                <span>Sales revenue</span><span class="metric-icon gold-icon">↗</span>
+              </div>
+              <strong>{{ formatMoney(adminOrdersTotal()) }}</strong>
+              <div class="metric-foot">{{ adminRevenueOrderCount() }} orders generating revenue</div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-topline">
+                <span>All orders</span><span class="metric-icon lavender-icon">⌑</span>
+              </div>
+              <strong>{{ state.orders().length }}</strong>
+              <div class="metric-foot">Returned by the API</div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-topline">
+                <span>Stores</span><span class="metric-icon blue-icon">▦</span>
+              </div>
+              <strong>{{ state.stores().length }}</strong>
+              <div class="metric-foot">Listed on the marketplace</div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-topline">
+                <span>Accounts</span><span class="metric-icon sage-icon">◎</span>
+              </div>
+              <strong>{{ state.users().length }}</strong>
+              <div class="metric-foot">Customer and store manager accounts</div>
+            </article>
+          </div>
+          <div class="dashboard-grid admin-dash-grid">
+            <section class="panel activity-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">MARKETPLACE</span>
+                  <h2>Latest orders</h2>
+                </div>
+                <button class="text-link" (click)="chooseSection('Orders')">
+                  All orders <span>↗</span>
+                </button>
+              </div>
+              <div class="activity-list">
+                @for (order of state.orders().slice(0, 6); track order.id) {
+                  <article class="activity-row">
+                    <span class="activity-avatar">{{ customerName(order.userId).charAt(0) }}</span>
+                    <div class="activity-copy">
+                      <strong>{{ customerName(order.userId) }}</strong><span
+                        >Order #{{ order.id }} · {{ displayStatus(order.status) }}</span
+                      >
+                    </div>
+                    <div class="activity-amount">
+                      <strong>{{ formatMoney(order.totalAmount) }}</strong><span>{{
+                        formatDate(order.createdAtUtc)
+                      }}</span>
+                    </div>
+                  </article>
+                } @empty {
+                  <div class="panel-empty">Orders will appear here as customers check out.</div>
+                }
+              </div>
+            </section>
+            <section class="panel activity-panel">
+              <div class="panel-heading">
+                <div>
+                  <span class="eyebrow">STORES</span>
+                  <h2>Marketplace stores</h2>
+                </div>
+                <button class="text-link" (click)="chooseSection('Stores')">
+                  Manage stores <span>↗</span>
+                </button>
+              </div>
+              <div class="application-list">
+                @for (store of state.stores().slice(0, 5); track store.id) {
+                  <article class="application-row">
+                    <span class="store-avatar">{{ categoryIcon(store.name) }}</span>
+                    <div>
+                      <strong>{{ store.name }}</strong><span>{{
+                        store.description || 'No description provided.'
+                      }}</span>
+                    </div>
+                    <span class="store-id">#{{ store.id }}</span>
+                  </article>
+                } @empty {
+                  <div class="panel-empty">No stores are currently listed.</div>
+                }
+              </div>
+            </section>
+          </div>
+        } @else if (state.role() === 'Admin' && state.section() === 'Stores') {
+          <section class="panel data-panel">
+            <div class="table-toolbar">
+              <span class="filter-chip active">{{ state.filteredStores().length }} stores</span
+              ><label class="search-box table-search"
+                ><svg viewBox="0 0 24 24">
+                  <circle cx="10.8" cy="10.8" r="6.8"></circle>
+                  <path d="m16 16 4.3 4.3"></path></svg
+                ><input
+                  type="search"
+                  placeholder="Search stores"
+                  [value]="state.storeSearch()"
+                  (input)="state.storeSearch.set($any($event.target).value)"
+              /></label>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>STORE</th>
+                    <th>MANAGER</th>
+                    <th>STORE ID</th>
+                    <th>CREATED</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (store of state.filteredStores(); track store.id) {
+                    <tr>
+                      <td>
+                        <div class="store-table-cell">
+                          <span class="store-avatar">{{ categoryIcon(store.name) }}</span>
+                          <div>
+                            <strong>{{ store.name }}</strong><span>{{ store.description }}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{{ store.managerId ? customerName(store.managerId) : '—' }}</td>
+                      <td>#{{ store.id }}</td>
+                      <td>{{ formatDate(store.createdAtUtc) }}</td>
+                      <td>
+                        <button class="quiet-button" (click)="sendMessage(store.id)">Message</button
+                        ><button
+                          class="row-more danger-link"
+                          (click)="removeStore(store.id, store.name)"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="table-empty">No stores match your search.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        } @else if (state.role() === 'Admin' && state.section() === 'Customers') {
+          <section class="panel data-panel">
+            <div class="table-toolbar">
+              <div class="filter-row">
+                <span class="filter-chip active">{{ state.filteredUsers().length }} accounts</span>
+              </div>
+              <label class="search-box table-search"
+                ><svg viewBox="0 0 24 24">
+                  <circle cx="10.8" cy="10.8" r="6.8"></circle>
+                  <path d="m16 16 4.3 4.3"></path></svg
+                ><input
+                  type="search"
+                  placeholder="Search people"
+                  [value]="state.customerSearch()"
+                  (input)="state.customerSearch.set($any($event.target).value)"
+              /></label>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>PERSON</th>
+                    <th>ROLE</th>
+                    <th>ACCOUNT ID</th>
+                    <th>JOINED</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (person of state.filteredUsers(); track person.id) {
+                    <tr>
+                      <td>
+                        <div class="customer-cell">
+                          <span class="avatar avatar-gold">{{ person.displayName.charAt(0) }}</span>
+                          <div>
+                            <strong>{{ person.displayName }}</strong><span class="table-subline">{{
+                              person.email
+                            }}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{{ prettyRole(person.role) }}</td>
+                      <td>#{{ person.id }}</td>
+                      <td>{{ formatDate(person.createdAtUtc) }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="table-empty">No accounts match your search.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        } @else if (state.role() === 'Admin' && state.section() === 'Categories') {
+          <section class="category-admin-grid">
+            @for (category of state.filteredCategories(); track category.id) {
+              <article class="category-admin-card">
+                <div class="category-admin-top">
+                  <span class="admin-category-icon">
+                    @if (category.imageUrl) {
+                      <img [src]="category.imageUrl" [alt]="category.name" loading="lazy" />
+                    } @else {
+                      <svg class="category-svg" viewBox="0 0 32 32" aria-hidden="true">
+                        <use
+                          [attr.href]="'/category-icons.svg#' + categoryIconType(category.name)"
+                        ></use>
+                      </svg>
+                    }
+                  </span>
+                  <div>
+                    <button
+                      class="row-more"
+                      aria-label="Edit category"
+                      (click)="openCategoryModal(category)"
+                    >
+                      Edit</button
+                    ><button
+                      class="row-more danger-link"
+                      aria-label="Delete category"
+                      (click)="removeCategory(category)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <h2>{{ category.name }}</h2>
+                <p>{{ categoryProductCount(category.id) }} loaded catalog products</p>
+                <div class="category-progress">
+                  <span [style.width.%]="categoryProductCount(category.id) ? 100 : 0"></span>
+                </div>
+                <button class="text-link" (click)="openCategoryModal(category)">
+                  Edit category <span>↗</span>
+                </button>
+              </article>
+            } @empty {
+              <div class="empty-workspace">
+                <div>⌂</div>
+                <h2>No categories yet.</h2>
+                <p>Create categories to help customers browse products.</p>
+                <button class="button button-dark" (click)="openCategoryModal()">
+                  Add category
+                </button>
+              </div>
+            }
+          </section>
+        } @else {
+          <section class="panel data-panel">
+            <div class="table-toolbar">
+              <div class="filter-row">
+                <span class="filter-chip active">{{ state.filteredOrders().length }} orders</span
+                ><span class="filter-chip">{{ state.openOrders().length }} in progress</span>
+              </div>
+              <label class="search-box table-search"
+                ><svg viewBox="0 0 24 24">
+                  <circle cx="10.8" cy="10.8" r="6.8"></circle>
+                  <path d="m16 16 4.3 4.3"></path></svg
+                ><input
+                  type="search"
+                  placeholder="Search orders"
+                  [value]="state.orderSearch()"
+                  (input)="state.orderSearch.set($any($event.target).value)"
+              /></label>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ORDER</th>
+                    <th>DATE</th>
+                    <th>CUSTOMER</th>
+                    <th>STATUS</th>
+                    <th>TOTAL</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (order of state.filteredOrders(); track order.id) {
+                    <tr>
+                      <td>
+                        <strong>#{{ order.id }}</strong
+                        ><span class="table-subline">{{ order.items.length }} items</span>
+                        <button class="order-details-toggle" [attr.aria-expanded]="isOrderExpanded(order.id)" (click)="toggleOrderDetails(order.id)">
+                          {{ isOrderExpanded(order.id) ? 'Hide details' : 'View details' }} <span>{{ isOrderExpanded(order.id) ? '⌃' : '⌄' }}</span>
+                        </button>
+                      </td>
+                      <td>{{ formatDate(order.createdAtUtc) }}</td>
+                      <td>{{ customerName(order.userId) }}</td>
+                      <td>
+                        <span [class]="statusClass(order.status)">{{
+                          displayStatus(order.status)
+                        }}</span>
+                      </td>
+                      <td>
+                        <strong>{{ formatMoney(order.totalAmount) }}</strong>
+                      </td>
+                      <td>
+                        @if (nextOrderStatus(order.status); as nextStatus) {
+                          <button class="quiet-button" (click)="advanceOrder(order.id, nextStatus)">
+                            {{ nextOrderAction(order.status) }} <span>↗</span>
+                          </button>
+                        }
+                        @if (state.role() === 'Admin' && canCancelOrder(order.status)) {
+                          <button class="quiet-button danger-link" (click)="cancelOrder(order.id)">
+                            Cancel
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                    @if (isOrderExpanded(order.id)) {
+                      <tr class="order-details-row">
+                        <td colspan="6">
+                          <div class="order-detail-panel">
+                            <div class="order-detail-contact">
+                              <span class="eyebrow">CUSTOMER</span>
+                              <strong>{{ customerName(order.userId) }}</strong>
+                              <span>{{ customerEmail(order.userId) }}</span>
+                            </div>
+                            <div class="order-detail-address">
+                              <span class="eyebrow">DELIVERY ADDRESS</span>
+                              <span>{{ orderAddress(order) }}</span>
+                            </div>
+                            <div class="order-detail-products">
+                              <span class="eyebrow">PRODUCTS ORDERED</span>
+                              @for (item of order.items; track $index) {
+                                <div class="order-product-line">
+                                  @if (orderItemImage(item); as imageUrl) {
+                                    <img [src]="imageUrl" [alt]="item.productName" />
+                                  } @else {
+                                    <span class="order-product-image-empty">✳</span>
+                                  }
+                                  <span class="order-product-name">{{ item.productName }} × {{ item.quantity }}</span>
+                                  <strong>{{ formatMoney(item.lineTotal) }}</strong>
+                                </div>
+                              } @empty {
+                                <span>No products were returned for this order.</span>
+                              }
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  } @empty {
+                    <tr>
+                      <td colspan="6" class="table-empty">No orders match your search.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        }
+        <footer class="workspace-footer">
+          <span>BizSpace · Live account data</span
+          ><span>Support: contact your BizSpace administrator.</span>
+        </footer>
+      </main>
+    </div>
+  }
+
+  @if (state.cartOpen()) {
+    <div class="overlay-backdrop" (click)="state.setCartOpen(false)">
+      <aside class="cart-drawer" (click)="$event.stopPropagation()" aria-label="Shopping bag">
+        <div class="drawer-head">
+          <div>
+            <span class="eyebrow">THE GOOD STUFF</span>
+            <h2>
+              Your bag <span>({{ state.cartCount() }})</span>
+            </h2>
+          </div>
+          <button class="drawer-close" aria-label="Close bag" (click)="state.setCartOpen(false)">
+            ×
+          </button>
+        </div>
+        @if (!checkoutMode()) {
+          @if (state.cart()?.items?.length) {
+            <div class="cart-lines">
+              @for (line of state.cart()?.items ?? []; track line.id) {
+                <article class="cart-line">
+                  @if (cartImage(line.imageUrl, line.productId); as imageUrl) {
+                    <img [src]="imageUrl" [alt]="line.productName" />
+                  } @else {
+                    <span class="cart-image-empty">✳</span>
+                  }
+                  <div class="cart-line-info">
+                    <strong>{{ line.productName }}</strong><span>{{
+                      formatMoney(line.unitPrice)
+                    }}</span>
+                    <div class="quantity-control">
+                      <button
+                        (click)="updateCartQuantity(line.id, line.quantity - 1)"
+                        aria-label="Decrease quantity"
+                      >
+                        −</button
+                      ><span>{{ line.quantity }}</span
+                      ><button
+                        [disabled]="line.quantity >= line.availableStock"
+                        (click)="updateCartQuantity(line.id, line.quantity + 1)"
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <strong class="cart-line-total">{{ formatMoney(line.lineTotal) }}</strong>
+                </article>
+              }
+            </div>
+            <div class="drawer-bottom">
+              <div class="subtotal-row">
+                <span>Subtotal</span><strong>{{ formatMoney(state.cartSubtotal()) }}</strong>
+              </div>
+              <span class="tax-note">Shipping and taxes calculated at checkout.</span
+              ><button class="button button-dark checkout-button" (click)="beginCheckout()">
+                Continue to checkout <span>↗</span></button
+              ><button class="continue-shopping" (click)="state.setCartOpen(false)">
+                Keep looking around
+              </button>
+            </div>
+          } @else {
+            <div class="empty-cart">
+              <div>✳</div>
+              <h3>Your bag is empty.</h3>
+              <p>Find something made with care.</p>
+              <button
+                class="button button-dark"
+                (click)="state.setCartOpen(false); chooseSection('Shop')"
+              >
+                Explore products <span>↗</span>
+              </button>
+            </div>
+          }
+        } @else {
+          <form
+            class="checkout-form"
+            #checkoutForm
+            (submit)="$event.preventDefault(); placeOrder(checkoutForm)"
+          >
+            <button type="button" class="back-to-bag" (click)="checkoutMode.set(false)">
+              ← Back to bag
+            </button>
+            <h3>Delivery details</h3>
+            @if (deliveryMethod() === 'Courier') {
+              @if (state.addresses().length) {
+                <label
+                  >Use a saved address<select
+                    [value]="selectedAddressId() ?? ''"
+                    (change)="useSavedAddress($any($event.target).value, checkoutForm)"
+                  >
+                    <option value="">Enter a new address</option>
+                    @for (address of state.addresses(); track address.id) {
+                      <option [value]="address.id">
+                        {{ address.label }} · {{ address.streetAddress }}, {{ address.city }}
+                      </option>
+                    }
+                  </select></label
+                >
+              }
+              <label
+                >Street address<input
+                  name="streetAddress"
+                  required
+                  maxlength="200"
+                  autocomplete="street-address"
+                  (input)="selectedAddressId.set(null)"
+              /></label>
+              <div class="form-row">
+                <label
+                  >City<input
+                    name="city"
+                    required
+                    maxlength="100"
+                    autocomplete="address-level2"
+                    (input)="selectedAddressId.set(null)" /></label
+                ><label
+                  >Postal code<input
+                    name="postalCode"
+                    required
+                    maxlength="20"
+                    autocomplete="postal-code"
+                    (input)="selectedAddressId.set(null)"
+                /></label>
+              </div>
+              <label
+                >Country<input
+                  name="country"
+                  required
+                  maxlength="100"
+                  autocomplete="country-name"
+                  (input)="selectedAddressId.set(null)"
+              /></label>
+            } @else {
+              <div class="pickup-address-note">
+                <span>✳</span>
+                <p>No delivery address is needed for store pickup.</p>
+              </div>
+            }
+            <h3>Delivery method</h3>
+            <div class="choice-row">
+              <label
+                ><input
+                  type="radio"
+                  name="deliveryMethod"
+                  [checked]="deliveryMethod() === 'Courier'"
+                  (change)="setDeliveryMethod('Courier')"
+                />
+                Courier</label
+              ><label
+                ><input
+                  type="radio"
+                  name="deliveryMethod"
+                  [checked]="deliveryMethod() === 'Pickup'"
+                  (change)="setDeliveryMethod('Pickup')"
+                />
+                Store pickup</label
+              >
+            </div>
+            <h3>Payment method</h3>
+            <div class="choice-row">
+              <label
+                ><input
+                  type="radio"
+                  name="paymentMethod"
+                  [checked]="paymentMethod() === 'Card'"
+                  (change)="paymentMethod.set('Card')"
+                />
+                Card</label
+              ><label
+                ><input
+                  type="radio"
+                  name="paymentMethod"
+                  [checked]="paymentMethod() === 'Cash'"
+                  (change)="paymentMethod.set('Cash')"
+                />
+                Cash</label
+              >
+            </div>
+            <p class="payment-note">
+              Card is available as a project demo payment option; no card is charged.
+            </p>
+            <div class="checkout-total">
+              <span>Total</span><strong>{{ formatMoney(state.cartSubtotal()) }}</strong>
+            </div>
+            <button class="button button-dark checkout-button" type="submit">
+              Place order <span>↗</span>
+            </button>
+          </form>
+        }
+      </aside>
+    </div>
+  }
+
+  @if (authOpen()) {
+    <div class="overlay-backdrop modal-backdrop">
+      <section class="product-modal auth-modal" aria-labelledby="auth-title">
+        <div class="drawer-head">
+          <div>
+            <span class="eyebrow">BIZSPACE ACCOUNT</span>
+            <h2 id="auth-title">
+              @switch (authMode()) {
+                @case ('login') {
+                  Welcome back
+                }
+                @case ('register') {
+                  Create your account
+                }
+                @case ('verify') {
+                  Check your inbox
+                }
+                @case ('forgot') {
+                  Reset your password
+                }
+                @case ('reset') {
+                  Choose a new password
+                }
+              }
+            </h2>
+          </div>
+          <button class="drawer-close" aria-label="Close" (click)="closeAuth()">×</button>
+        </div>
+        @if (authMode() === 'login') {
+          <form (submit)="$event.preventDefault(); login(loginForm)" #loginForm>
+            <label>Email<input name="email" type="email" required autocomplete="email" /></label
+            ><label
+              >Password<input
+                name="password"
+                type="password"
+                required
+                autocomplete="current-password"
+            /></label>
+            @if (authError()) {
+              <p class="form-error">{{ authError() }}</p>
+            }
+            <button class="button button-dark auth-submit" [disabled]="authBusy()">
+              {{ authBusy() ? 'Signing in…' : 'Sign in' }} <span>↗</span></button
+            ><button type="button" class="auth-text-button" (click)="openAuth('forgot')">
+              Forgot password?
+            </button>
+            <p class="auth-switch">
+              New to BizSpace?
+              <button type="button" (click)="openAuth('register')">Create an account</button>
+            </p>
+          </form>
+        } @else if (authMode() === 'register') {
+          <div class="auth-role-choice">
+            <button
+              [class.active]="!managerRegistration()"
+              (click)="managerRegistration.set(false)"
+            >
+              Customer</button
+            ><button [class.active]="managerRegistration()" (click)="managerRegistration.set(true)">
+              Store manager
+            </button>
+          </div>
+          <form (submit)="$event.preventDefault(); register(registerForm)" #registerForm>
+            <label
+              >Display name<input
+                name="displayName"
+                required
+                minlength="2"
+                maxlength="120"
+                autocomplete="name" /></label
+            ><label>Email<input name="email" type="email" required autocomplete="email" /></label
+            ><label
+              >Password<input
+                name="password"
+                type="password"
+                required
+                minlength="8"
+                maxlength="128"
+                autocomplete="new-password"
+            /></label>
+            @if (authError()) {
+              <p class="form-error">{{ authError() }}</p>
+            }
+            <button class="button button-dark auth-submit" [disabled]="authBusy()">
+              {{ authBusy() ? 'Creating account…' : 'Create account' }} <span>↗</span>
+            </button>
+            <p class="auth-switch">
+              Already have an account?
+              <button type="button" (click)="openAuth('login')">Sign in</button>
+            </p>
+          </form>
+        } @else if (authMode() === 'verify') {
+          <p class="auth-description">
+            Enter the six-digit confirmation code sent to <strong>{{ pendingEmail() }}</strong>.
+          </p>
+          <form (submit)="$event.preventDefault(); verifyEmail(verifyForm)" #verifyForm>
+            <label
+              >Confirmation code<input
+                name="code"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                minlength="6"
+                maxlength="6"
+                required
+                autocomplete="one-time-code"
+            /></label>
+            @if (authError()) {
+              <p class="form-error">{{ authError() }}</p>
+            }
+            <button class="button button-dark auth-submit" [disabled]="authBusy()">
+              {{ authBusy() ? 'Verifying…' : 'Verify email' }} <span>↗</span></button
+            ><button
+              type="button"
+              class="auth-text-button"
+              [disabled]="authBusy()"
+              (click)="resendVerificationCode()"
+            >
+              Resend confirmation code</button
+            ><button type="button" class="auth-text-button" (click)="authMode.set('register')">
+              Use a different email
+            </button>
+          </form>
+        } @else if (authMode() === 'forgot') {
+          <form (submit)="$event.preventDefault(); requestPasswordReset(forgotForm)" #forgotForm>
+            <label
+              >Email<input
+                name="email"
+                type="email"
+                required
+                [value]="pendingEmail()"
+                autocomplete="email"
+            /></label>
+            @if (authError()) {
+              <p class="form-error">{{ authError() }}</p>
+            }
+            <button class="button button-dark auth-submit" [disabled]="authBusy()">
+              Send reset code
+            </button>
+          </form>
+        } @else {
+          <p class="auth-description">
+            Enter the code sent to <strong>{{ pendingEmail() }}</strong> and choose a new password.
+          </p>
+          <form (submit)="$event.preventDefault(); resetPassword(resetForm)" #resetForm>
+            <label
+              >Reset code<input
+                name="code"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                minlength="6"
+                maxlength="6"
+                required /></label
+            ><label
+              >New password<input
+                name="newPassword"
+                type="password"
+                minlength="8"
+                maxlength="128"
+                required
+                autocomplete="new-password"
+            /></label>
+            @if (authError()) {
+              <p class="form-error">{{ authError() }}</p>
+            }
+            <button class="button button-dark auth-submit" [disabled]="authBusy()">
+              Reset password
+            </button>
+          </form>
+        }
+      </section>
+    </div>
+  }
+
+  @if (productModalOpen()) {
+    <div class="overlay-backdrop modal-backdrop" (click)="closeProductModal()">
+      <section class="product-modal" (click)="$event.stopPropagation()">
+        <div class="drawer-head">
+          <div>
+            <span class="eyebrow">STORE CATALOG</span>
+            <h2>{{ editingProduct() ? 'Edit product' : 'Add a product' }}</h2>
+          </div>
+          <button class="drawer-close" aria-label="Close" (click)="closeProductModal()">×</button>
+        </div>
+        <form #productForm (submit)="$event.preventDefault(); saveProduct(productForm)">
+          <label
+            >Product name<input
+              name="name"
+              required
+              minlength="2"
+              maxlength="160"
+              [value]="editingProduct()?.name || ''"
+          /></label>
+          <div class="form-row">
+            <label
+              >Brand<input
+                name="brand"
+                maxlength="100"
+                [value]="editingProduct()?.brand || ''" /></label
+            ><label
+              >Category<select
+                name="categoryId"
+                required
+                [value]="editingProduct()?.categoryId || state.allCategories()[0]?.id || ''"
+              >
+                @for (category of state.allCategories(); track category.id) {
+                  <option [value]="category.id">{{ categoryPath(category.id) }}</option>
+                }
+              </select></label
+            >
+          </div>
+          <label
+            >Description<textarea name="description" required maxlength="4000" rows="3">{{
+              editingProduct()?.description || ''
+            }}</textarea>
+          </label>
+          <div class="form-row">
+            <label
+              >Price<input
+                name="price"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+                [value]="editingProduct()?.price || ''" /></label
+            ><label
+              >Discount %<input
+                name="discountPercent"
+                type="number"
+                min="0"
+                max="90"
+                step="0.01"
+                [value]="editingProduct()?.discountPercent || 0"
+            /></label>
+          </div>
+          <div class="form-row">
+            <label
+              >Stock<input
+                name="stock"
+                type="number"
+                min="0"
+                required
+                [value]="editingProduct()?.stock ?? 0" /></label
+            ><label
+              >Minimum stock<input
+                name="minimumStockLevel"
+                type="number"
+                min="0"
+                required
+                [value]="editingProduct()?.minimumStockLevel ?? 0"
+            /></label>
+          </div>
+          @if (editingProduct(); as product) {
+            <section class="product-photo-manager">
+              <div class="product-photo-manager-heading">
+                <span class="eyebrow">PRODUCT PHOTOS · {{ product.images.length }}/10</span
+                ><span>Upload one photo at a time. Use the arrows to set the photo order.</span>
+              </div>
+              <label class="product-photo-upload"
+                >Add a photo<input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  [disabled]="productPhotoBusy() || product.images.length >= 10"
+                  (change)="uploadProductPhoto($event)"
+              /></label>
+              <div class="product-photo-list">
+                @for (image of orderedProductImages(product); track image.id; let index = $index) {
+                  <div class="product-photo-row">
+                    <img
+                      [src]="image.secureUrl"
+                      [alt]="product.name + ' photo ' + (index + 1)"
+                    /><span class="product-photo-order"
+                      >{{ index + 1 }}<small>{{ index === 0 ? 'Cover' : 'Photo' }}</small></span
+                    >
+                    <div class="product-photo-actions">
+                      <button
+                        type="button"
+                        aria-label="Move photo up"
+                        [disabled]="productPhotoBusy() || index === 0"
+                        (click)="moveProductPhoto(product, index, -1)"
+                      >
+                        ↑</button
+                      ><button
+                        type="button"
+                        aria-label="Move photo down"
+                        [disabled]="productPhotoBusy() || index === product.images.length - 1"
+                        (click)="moveProductPhoto(product, index, 1)"
+                      >
+                        ↓</button
+                      ><button
+                        type="button"
+                        class="photo-remove"
+                        aria-label="Remove photo"
+                        [disabled]="productPhotoBusy()"
+                        (click)="deleteProductPhoto(product, image.id)"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="product-photo-empty">No photos yet.</p>
+                }
+              </div>
+            </section>
+          } @else {
+            <label
+              >Product photo<input
+                name="image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              /><small>Upload one cover photo. Add more after creating the product.</small></label
+            >
+          }
+          <input
+            type="hidden"
+            name="storeId"
+            [value]="editingProduct()?.storeId || state.selectedStoreId() || ''"
+          />
+          <div class="modal-actions">
+            <button type="button" class="button button-outline" (click)="closeProductModal()">
+              Cancel</button
+            ><button type="submit" class="button button-dark">
+              {{ editingProduct() ? 'Save changes' : 'Add product' }} <span>↗</span>
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (storeModalOpen()) {
+    <div class="overlay-backdrop modal-backdrop" (click)="storeModalOpen.set(false)">
+      <section class="product-modal" (click)="$event.stopPropagation()">
+        <div class="drawer-head">
+          <div>
+            <span class="eyebrow">STORE SETUP</span>
+            <h2>Create a store</h2>
+          </div>
+          <button class="drawer-close" aria-label="Close" (click)="storeModalOpen.set(false)">
+            ×
+          </button>
+        </div>
+        <form #storeForm (submit)="$event.preventDefault(); saveStore(storeForm)">
+          <label>Store name<input name="name" required minlength="2" maxlength="160" /></label
+          ><label
+            >Description<textarea name="description" maxlength="2000" rows="4"></textarea>
+          </label>
+          <div class="modal-actions">
+            <button type="button" class="button button-outline" (click)="storeModalOpen.set(false)">
+              Cancel</button
+            ><button type="submit" class="button button-dark">Create store <span>↗</span></button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (campaignModalOpen()) {
+    <div class="overlay-backdrop modal-backdrop" (click)="campaignModalOpen.set(false)">
+      <section class="product-modal" (click)="$event.stopPropagation()">
+        <div class="drawer-head">
+          <div>
+            <span class="eyebrow">STORE PROMOTION</span>
+            <h2>{{ editingCampaign() ? 'Edit campaign' : 'Create campaign' }}</h2>
+          </div>
+          <button class="drawer-close" aria-label="Close" (click)="campaignModalOpen.set(false)">
+            ×
+          </button>
+        </div>
+        <form #campaignForm (submit)="$event.preventDefault(); saveCampaign(campaignForm)">
+          <label
+            >Name<input
+              name="name"
+              required
+              minlength="2"
+              maxlength="160"
+              [value]="editingCampaign()?.name || ''" /></label
+          ><label
+            >Description<textarea name="description" maxlength="2000" rows="3">{{
+              editingCampaign()?.description || ''
+            }}</textarea>
+          </label>
+          <div class="form-row">
+            <label
+              >Discount %<input
+                name="discountPercent"
+                type="number"
+                min="0.01"
+                max="90"
+                step="0.01"
+                required
+                [value]="editingCampaign()?.discountPercent || ''" /></label
+            ><label
+              >Store<select
+                name="storeId"
+                required
+                [value]="editingCampaign()?.storeId || state.selectedStoreId() || ''"
+              >
+                @for (store of state.myStores(); track store.id) {
+                  <option [value]="store.id">{{ store.name }}</option>
+                }
+              </select></label
+            >
+          </div>
+          <div class="form-row">
+            <label
+              >Starts<input
+                name="startsAt"
+                type="datetime-local"
+                required
+                [value]="editingCampaign()?.startsAtUtc?.slice(0, 16) || ''" /></label
+            ><label
+              >Ends<input
+                name="endsAt"
+                type="datetime-local"
+                required
+                [value]="editingCampaign()?.endsAtUtc?.slice(0, 16) || ''"
+            /></label>
+          </div>
+          <label
+            >Category<select name="categoryId">
+              <option value="">All categories</option>
+              @for (category of state.allCategories(); track category.id) {
+                <option
+                  [value]="category.id"
+                  [selected]="editingCampaign()?.categoryId === category.id"
+                >
+                  {{ categoryPath(category.id) }}
+                </option>
+              }
+            </select></label
+          ><label class="checkbox-label"
+            ><input
+              name="isEnabled"
+              type="checkbox"
+              [checked]="editingCampaign()?.isEnabled ?? true"
+            />
+            Campaign enabled</label
+          >
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="button button-outline"
+              (click)="campaignModalOpen.set(false)"
+            >
+              Cancel</button
+            ><button type="submit" class="button button-dark">Save campaign <span>↗</span></button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (categoryModalOpen()) {
+    <div class="overlay-backdrop modal-backdrop" (click)="categoryModalOpen.set(false)">
+      <section class="product-modal" (click)="$event.stopPropagation()">
+        <div class="drawer-head">
+          <div>
+            <span class="eyebrow">MARKETPLACE CATALOG</span>
+            <h2>{{ editingCategory() ? 'Edit category' : 'Add category' }}</h2>
+          </div>
+          <button class="drawer-close" aria-label="Close" (click)="categoryModalOpen.set(false)">
+            ×
+          </button>
+        </div>
+        <form #categoryForm (submit)="$event.preventDefault(); saveCategory(categoryForm)">
+          <label
+            >Name<input
+              name="name"
+              required
+              minlength="2"
+              maxlength="100"
+              [value]="editingCategory()?.name || ''" /></label
+          ><label
+            >Description<textarea name="description" maxlength="2000" rows="3">{{
+              editingCategory()?.description || ''
+            }}</textarea></label
+          ><label
+            >Parent category<select name="parentId">
+              <option value="">None</option>
+              @for (category of state.allCategories(); track category.id) {
+                @if (category.id !== editingCategory()?.id) {
+                  <option
+                    [value]="category.id"
+                    [selected]="editingCategory()?.parentId === category.id"
+                  >
+                    {{ categoryPath(category.id) }}
+                  </option>
+                }
+              }
+            </select></label
+          ><label
+            >Image URL<input
+              name="imageUrl"
+              type="url"
+              maxlength="1000"
+              [value]="editingCategory()?.imageUrl || ''"
+          /></label>
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="button button-outline"
+              (click)="categoryModalOpen.set(false)"
+            >
+              Cancel</button
+            ><button type="submit" class="button button-dark">Save category <span>↗</span></button>
+          </div>
+        </form>
+      </section>
+    </div>
+  }
+
+  @if (state.toast()) {
+    <div class="toast-message"><span>✳</span>{{ state.toast() }}</div>
+  }
+</div>

@@ -1,0 +1,231 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 30px 19px;
+  margin: 0 0 56px;
+}
+.product-card {
+  min-width: 0;
+}
+.product-image {
+  aspect-ratio: 1 / 1.08;
+  position: relative;
+  overflow: hidden;
+  background: #ece9e1;
+}
+.product-image > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.45s cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+.product-card:hover .product-image > img {
+  transform: scale(1.045);
+}
+.save-button {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+.save-button:hover {
+  transform: scale(1.08);
+}
+.save-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: #777369;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.save-button.is-saved svg {
+  fill: #bd886f;
+  stroke: #bd886f;
+}
+.quick-add {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 39px;
+  padding: 0 13px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.96);
+  color: #35342f;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  cursor: pointer;
+}
+.quick-add span {
+  color: var(--gold);
+  font-size: 19px;
+  font-weight: 400;
+}
+.product-card:hover .quick-add,
+.quick-add:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.product-details {
+  padding: 11px 1px 0;
+}
+.product-maker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #9a958a;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.rating {
+  color: #927342;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.product-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+}
+.product-name-row h3 {
+  min-width: 0;
+  overflow: hidden;
+  margin: 0;
+  color: #383731;
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.product-price {
+  color: #44423c;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.product-meta {
+  margin-top: 5px;
+  color: #a09c93;
+  font-size: 9px;
+}
+.product-meta span {
+  margin: 0 3px;
+  color: #bfb9ac;
+}
+.product-image-open {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.save-button,
+.quick-add {
+  z-index: 2;
+}
+.product-name-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.product-name-link:hover {
+  color: #9a7843;
+}
+
+@media (max-width: 1100px) {
+  .product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 23px 13px;
+  }
+}
+@media (max-width: 850px) {
+  .product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 11px;
+    margin-bottom: 37px;
+  }
+  .product-image {
+    aspect-ratio: 1 / 1.14;
+  }
+  .save-button {
+    top: 6px;
+    right: 6px;
+    width: 29px;
+    height: 29px;
+  }
+  .quick-add {
+    right: 6px;
+    bottom: 6px;
+    left: 6px;
+    height: 34px;
+    padding-inline: 9px;
+    font-size: 9px;
+    opacity: 1;
+    transform: none;
+  }
+  .product-details {
+    padding-top: 9px;
+  }
+  .product-maker {
+    font-size: 7px;
+    letter-spacing: 0.7px;
+  }
+  .rating {
+    font-size: 8px;
+  }
+  .product-name-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 5px;
+  }
+  .product-name-row h3 {
+    width: 100%;
+    font-size: 10px;
+  }
+  .product-price {
+    font-size: 9px;
+  }
+  .product-meta {
+    font-size: 8px;
+  }
+}

@@ -1,0 +1,71 @@
+@if (state.catalogLoading() && !state.productViews().length) {
+  <div class="loading-state" role="status">
+    <span class="loading-spinner"></span><span>Loading the marketplace…</span>
+  </div>
+}
+<section class="product-grid" aria-label="Products">
+  @for (product of products; track product.id) {
+    <article class="product-card">
+      <div class="product-image">
+        @if (product.imageUrl) {
+          <img [src]="product.imageUrl" [alt]="product.name" loading="lazy" />
+        } @else {
+          <div class="product-image-empty">{{ ui.categoryIcon(product.categoryName) }}</div>
+        }
+        <button
+          class="product-image-open"
+          type="button"
+          [attr.aria-label]="'View details for ' + product.name"
+          (click)="ui.openProduct(product.id)"
+        ></button>
+        @if (product.discountPercent > 0) {
+          <span class="product-badge">−{{ product.discountPercent }}%</span>
+        }
+        <button
+          class="save-button"
+          type="button"
+          [class.is-saved]="ui.isSaved(product.id)"
+          [attr.aria-label]="ui.isSaved(product.id) ? 'Remove from saved items' : 'Save item'"
+          (click)="ui.toggleSaved(product.id)"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.3 8.8c0 5-8.3 10.2-8.3 10.2S3.7 13.8 3.7 8.8a4.3 4.3 0 0 1 8.3-1.5 4.3 4.3 0 0 1 8.3 1.5Z"></path>
+          </svg>
+        </button>
+        <button
+          class="quick-add"
+          type="button"
+          [disabled]="!ui.productCanBeAdded(product)"
+          (click)="ui.addToCart(product.id)"
+        >
+          {{ product.stock > 0 ? 'Add to bag' : 'Out of stock' }} <span>+</span>
+        </button>
+      </div>
+      <div class="product-details">
+        <div class="product-maker">
+          {{ product.brand || product.storeName }}
+          <span class="rating">
+            @if (product.reviewCount) {
+              ★ {{ product.averageRating | number: '1.1-1' }}
+            } @else {
+              New
+            }
+          </span>
+        </div>
+        <div class="product-name-row">
+          <h3><button class="product-name-link" type="button" (click)="ui.openProduct(product.id)">{{ product.name }}</button></h3>
+          <span class="product-price">{{ ui.formatMoney(product.effectivePrice) }}</span>
+        </div>
+        <div class="product-meta">
+          {{ product.categoryName }} @if (product.storeName) { <span>·</span> {{ product.storeName }} }
+        </div>
+      </div>
+    </article>
+  } @empty {
+    @if (!state.catalogLoading()) {
+      <div class="empty-state">
+        <span>⌕</span><h3>{{ emptyTitle }}</h3><p>{{ emptyCopy }}</p>
+      </div>
+    }
+  }
+</section>

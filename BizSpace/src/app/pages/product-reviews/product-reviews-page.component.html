@@ -1,0 +1,16 @@
+@if (state.selectedProduct(); as product) {
+  <section class="product-reviews-page" [attr.aria-label]="'Reviews for ' + product.name">
+    <button class="product-back-link" type="button" (click)="ui.returnToProduct(product.id)"><span>←</span> Back to product</button>
+    <div class="product-reviews-heading"><div class="eyebrow"><span class="eyebrow-line"></span> CUSTOMER REVIEWS</div><h1>Reviews for {{ product.name }}<span class="gold-period">.</span></h1><div class="product-review-summary">@if (product.reviewCount > 0) { <strong>★ {{ product.averageRating | number: '1.1-1' }}</strong><span>{{ product.reviewCount }} {{ product.reviewCount === 1 ? 'review' : 'reviews' }}</span> } @else { <span>No reviews yet</span> }</div></div>
+    @if (!auth.isAuthenticated()) { <button class="button button-outline" type="button" (click)="ui.openReviewForm()">Sign in to write a review</button> }
+    @else if (auth.role() === 'Customer' && !ui.currentUserHasReviewed()) { <button class="button button-outline" type="button" (click)="ui.writeReviewFromList(product.id)">Write a review</button> }
+    @if (ui.reviewsLoading()) { <p class="product-reviews-message" role="status">Loading reviews…</p> }
+    @else if (ui.reviewsError()) { <div class="product-reviews-error"><p>{{ ui.reviewsError() }}</p><button class="text-link" type="button" (click)="ui.retryProductReviews(product.id)">Try again</button></div> }
+    @else {
+      <div class="product-review-filter-bar"><label>Filter by stars<select [value]="ui.customerReviewStarFilter() ?? ''" (change)="ui.setCustomerReviewStarFilter($any($event.target).value)"><option value="">All ratings</option>@for (rating of starOptions; track rating) { <option [value]="rating">{{ rating }} {{ rating === 1 ? 'star' : 'stars' }}</option> }</select></label><span>{{ ui.filteredProductReviews().length }} {{ ui.filteredProductReviews().length === 1 ? 'review' : 'reviews' }}</span></div>
+      <div class="product-review-list">@for (review of ui.filteredProductReviews(); track review.id) { <article class="product-review-card"><div class="product-review-card-heading"><div class="product-review-author"><span class="avatar avatar-gold">{{ review.displayName.charAt(0) }}</span><span><strong>{{ review.displayName }}</strong><time>{{ ui.formatDate(review.createdAtUtc) }}</time></span></div><span class="product-review-stars" [attr.aria-label]="review.rating + ' out of 5 stars'">{{ ui.reviewStars(review.rating) }}</span></div><p>{{ review.comment || 'No written comment.' }}</p></article> } @empty { <div class="product-reviews-empty"><span>✳</span><h2>{{ ui.productReviews().length ? 'No reviews at this rating.' : 'No reviews yet.' }}</h2><p>{{ ui.productReviews().length ? 'Choose another star rating to see more reviews.' : 'Be the first customer to share what you think about this product.' }}</p></div> }</div>
+    }
+  </section>
+} @else {
+  <div class="loading-state" role="status"><span class="loading-spinner"></span><span>Loading reviews…</span></div>
+}

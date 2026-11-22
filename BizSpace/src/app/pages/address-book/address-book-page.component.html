@@ -1,0 +1,19 @@
+<section class="page-intro slim-intro"><div><div class="eyebrow"><span class="eyebrow-line"></span> CHECKOUT DETAILS</div><h1>Address book<span class="gold-period">.</span></h1></div><p>Saved addresses are ready to use<br />whenever you check out.</p></section>
+<div class="address-book-toolbar"><div><span class="eyebrow">{{ state.addresses().length }} SAVED {{ state.addresses().length === 1 ? 'ADDRESS' : 'ADDRESSES' }}</span><p>Select one of these addresses during checkout.</p></div><button class="button button-dark" type="button" (click)="ui.openAddressEditor()"><span class="button-plus">+</span> Add address</button></div>
+@if (ui.addressEditorOpen()) {
+  <form class="address-editor" #addressForm (submit)="$event.preventDefault(); ui.saveAddress(addressForm)">
+    <div class="address-editor-heading"><div><span class="eyebrow">{{ ui.editingAddress() ? 'EDIT SAVED ADDRESS' : 'NEW SAVED ADDRESS' }}</span><h2>{{ ui.editingAddress() ? 'Update address' : 'Add an address' }}</h2></div><button type="button" class="quiet-button" (click)="ui.closeAddressEditor()">Cancel <span>×</span></button></div>
+    <label>Address label<input name="label" required maxlength="80" placeholder="Home, Work, etc." [value]="ui.editingAddress()?.label || ''" /></label>
+    <label>Street address<input name="streetAddress" required maxlength="200" autocomplete="street-address" [value]="ui.editingAddress()?.streetAddress || ''" /></label>
+    <div class="form-row"><label>City<input name="city" required maxlength="100" autocomplete="address-level2" [value]="ui.editingAddress()?.city || ''" /></label><label>Postal code<input name="postalCode" required maxlength="20" autocomplete="postal-code" [value]="ui.editingAddress()?.postalCode || ''" /></label></div>
+    <label>Country<input name="country" required maxlength="100" autocomplete="country-name" [value]="ui.editingAddress()?.country || ''" /></label>
+    <div class="modal-actions"><button class="button button-outline" type="button" (click)="ui.closeAddressEditor()">Cancel</button><button class="button button-dark" type="submit" [disabled]="ui.addressBusy()">{{ ui.addressBusy() ? 'Saving…' : ui.editingAddress() ? 'Save changes' : 'Save address' }} <span>↗</span></button></div>
+  </form>
+}
+<div class="address-card-grid">
+  @for (address of state.addresses(); track address.id) {
+    <article class="address-card"><div class="address-card-top"><span class="address-label-mark">⌂</span><span class="address-card-label">{{ address.label }}</span></div><address>{{ address.streetAddress }}<br />{{ address.city }}, {{ address.postalCode }}<br />{{ address.country }}</address><div class="address-card-actions"><button class="text-link" type="button" (click)="ui.openAddressEditor(address)">Edit</button><button class="text-link address-delete" type="button" (click)="ui.deleteSavedAddress(address)">Delete</button></div></article>
+  } @empty {
+    <div class="empty-state address-empty"><span>⌂</span><h3>No saved addresses yet.</h3><p>Add an address and select it at checkout next time.</p><button class="button button-dark" type="button" (click)="ui.openAddressEditor()">Add your first address <span>↗</span></button></div>
+  }
+</div>

@@ -1,0 +1,38 @@
+<section class="hero-banner">
+  <div class="hero-copy">
+    <span class="hero-roundel">MADE<br />WITH<br />INTENTION</span>
+    <span class="eyebrow">DISCOVER · SHOP · SUPPORT</span>
+    <h1>Good things,<br /><em>found here.</em></h1>
+    <button class="button button-dark" type="button" (click)="ui.chooseSection('Shop')">Explore products <span>↗</span></button>
+  </div>
+  <div class="hero-art-placeholder" aria-hidden="true"><span>✳</span></div>
+  <div class="hero-vertical">DISCOVER · SHOP · SUPPORT ·</div>
+</section>
+
+@if (state.apiError() && !state.products().length) {
+  <div class="api-notice" role="alert"><span>!</span><div><strong>We couldn't load the marketplace.</strong><p>{{ state.apiError() }}</p><button type="button" (click)="state.initialize()">Try again</button></div></div>
+}
+
+@if (state.topLevelCategories().length) {
+  <section class="category-strip" aria-label="Shop by category">
+    @for (category of state.topLevelCategories(); track category.id) {
+      <button class="category-tile" type="button" (click)="state.setCategory(category.id); ui.chooseSection('Shop')">
+        <span class="category-tile-art">
+          @if (category.imageUrl) { <img class="category-art-image" [src]="category.imageUrl" alt="" loading="lazy" /> }
+          @else { <svg class="category-svg" viewBox="0 0 32 32" aria-hidden="true"><use [attr.href]="'/category-icons.svg#' + ui.categoryIconType(category.name)"></use></svg> }
+        </span><span>{{ category.name }}</span><span class="category-arrow">↗</span>
+      </button>
+    }
+  </section>
+}
+
+<div class="section-heading product-section-title">
+  <div><span class="eyebrow">FROM THE BIZSPACE MARKETPLACE</span><h2>Worth a closer look</h2></div>
+  <button class="text-link" type="button" (click)="ui.chooseSection('Shop')">Shop everything <span>↗</span></button>
+</div>
+<app-product-grid [products]="state.productResults().slice(0, 8)" />
+
+<section class="maker-note">
+  <div class="maker-note-star">✳</div><div><span class="eyebrow">A MARKETPLACE WITH MEANING</span><h2>Find your next favorite small shop.</h2><p>Discover independent stores and the products they make and love.</p></div>
+  <button class="text-link" type="button" (click)="ui.chooseSection('Stores')">Browse the stores <span>↗</span></button>
+</section>

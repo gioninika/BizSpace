@@ -1,34 +1,21 @@
+include:
+  - path:
+      - ./BizSpace.API/docker-compose.yml
+      - ./BizSpace.API/docker-compose.override.yml
+    project_directory: ./BizSpace.API
+
 services:
-  bizspace:
-    image: ${DOCKER_REGISTRY-}bizspace
+  web:
+    image: bizspace-web
     build:
-      context: .
-      dockerfile: BizSpace/Dockerfile
-    env_file:
-      - .env
+      context: ./BizSpace
+      dockerfile: Dockerfile
     environment:
-      ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BizSpace;User Id=sa;Password=${BIZSPACE_DB_SA_PASSWORD:?Add BIZSPACE_DB_SA_PASSWORD to .env};Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
-      Database__ApplyMigrations: "true"
+      NODE_ENV: production
+      PORT: "4000"
     depends_on:
-      sqlserver:
-        condition: service_healthy
+      bizspace:
+        condition: service_started
     ports:
-      - "8080:8080"
-
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "${BIZSPACE_DB_SA_PASSWORD:?Add BIZSPACE_DB_SA_PASSWORD to .env}"
-    volumes:
-      - bizspace-sql-data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\""]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-      start_period: 15s
-
-volumes:
-  bizspace-sql-data:
+      - "4200:4000"
+    restart: unless-stopped

@@ -1,29 +1,22 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-USER $APP_UID
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
-EXPOSE 8080
 
+COPY package*.json ./
+RUN npm ci
 
-# This stage is used to build the service project
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["BizSpace/BizSpace.csproj", "BizSpace/"]
-RUN dotnet restore "./BizSpace/BizSpace.csproj"
 COPY . .
-WORKDIR "/src/BizSpace"
-RUN dotnet build "./BizSpace.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN npm run build
 
-# This stage is used to publish the service project to be copied to the final stage
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./BizSpace.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
-FROM base AS final
+FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "BizSpace.dll"]
+
+ENV NODE_ENV=production
+ENV PORT=4000
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=build /app/dist/BizSpace ./dist/BizSpace
+
+EXPOSE 4000
+CMD ["node", "dist/BizSpace/server/server.mjs"]

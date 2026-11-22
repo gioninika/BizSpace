@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <symbol id="electronics" viewBox="0 0 32 32"><rect x="8" y="4" width="16" height="24" rx="3"/><path d="M12 8h8M13 24h6"/></symbol>
+  <symbol id="books" viewBox="0 0 32 32"><path d="M5 7a3 3 0 0 1 3-3h18v24H8a3 3 0 0 1-3-3z"/><path d="M5 8h17M11 4v24"/></symbol>
+  <symbol id="home" viewBox="0 0 32 32"><path d="m4 15 12-10 12 10v13H4z"/><path d="M12 28V18h8v10M4 15h24"/></symbol>
+  <symbol id="fashion" viewBox="0 0 32 32"><path d="M16 6a3 3 0 1 1 3 3c-2 0-3-1-3-3ZM8 16c2-2 5-3 8-3s6 1 8 3l5 5H3zM5 21h22l-2 8H7z"/></symbol>
+  <symbol id="beauty" viewBox="0 0 32 32"><path d="M12 5h8v5l3 3v15H9V13l3-3zM12 10h8M12 18h8"/></symbol>
+  <symbol id="sports" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><path d="m8 7 4 5-2 5-5 1M24 7l-4 5 2 5 5 1M12 12h8M10 17l4 8M22 17l-4 8"/></symbol>
+  <symbol id="toys" viewBox="0 0 32 32"><path d="m16 3 3.5 7 7.5 1-5.5 5.5 1.3 7.5L16 20.5 9.2 24l1.3-7.5L5 11l7.5-1z"/><circle cx="25" cy="25" r="3"/></symbol>
+  <symbol id="grocery" viewBox="0 0 32 32"><path d="M5 14h22l-2 13H7zM4 14c0-5 5-8 12-8s12 3 12 8M16 6c0-3 2-4 5-4M12 18v5M20 18v5"/></symbol>
+  <symbol id="pets" viewBox="0 0 32 32"><path d="M10 17c-3 0-5 3-5 6 0 2 2 3 4 2l3-1h8l3 1c2 1 4 0 4-2 0-3-2-6-5-6-2 0-3 2-6 2s-4-2-6-2Z"/><ellipse cx="8" cy="11" rx="2.5" ry="3.5"/><ellipse cx="14" cy="8" rx="2.5" ry="3.5"/><ellipse cx="20" cy="8" rx="2.5" ry="3.5"/><ellipse cx="25" cy="11" rx="2.5" ry="3.5"/></symbol>
+  <symbol id="automotive" viewBox="0 0 32 32"><path d="m5 18 2-7h18l2 7v8h-3v-3H8v3H5zM7 18h18M10 11l2-5h8l2 5"/><circle cx="10" cy="19" r="1"/><circle cx="22" cy="19" r="1"/></symbol>
+  <symbol id="general" viewBox="0 0 32 32"><path d="M16 3v8M16 21v8M3 16h8M21 16h8M7 7l6 6M19 19l6 6M25 7l-6 6M13 19l-6 6"/><circle cx="16" cy="16" r="3"/></symbol>
+</svg>

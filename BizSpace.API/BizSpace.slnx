@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="BizSpace.API/BizSpace.API.csproj" />
+  <Project Path="BizSpace.Tests/BizSpace.Tests.csproj" />
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+</Solution>

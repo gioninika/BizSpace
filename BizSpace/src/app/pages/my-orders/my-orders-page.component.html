@@ -1,0 +1,15 @@
+<section class="page-intro slim-intro"><div><div class="eyebrow"><span class="eyebrow-line"></span> ORDER HISTORY</div><h1>My orders<span class="gold-period">.</span></h1></div><p>Updates from the stores you support.</p></section>
+<div class="orders-list customer-orders-list">
+  @for (order of state.orders(); track order.id) {
+    <article class="customer-order-card">
+      <div class="order-icon">↗</div><div class="customer-order-info"><strong>Order #{{ order.id }}</strong><span>{{ ui.formatDate(order.createdAtUtc) }} · {{ order.items.length }} {{ order.items.length === 1 ? 'item' : 'items' }}</span><button class="order-details-toggle" type="button" [attr.aria-expanded]="ui.isOrderExpanded(order.id)" (click)="ui.toggleOrderDetails(order.id)">{{ ui.isOrderExpanded(order.id) ? 'Hide details' : 'View details' }} <span>{{ ui.isOrderExpanded(order.id) ? '⌃' : '⌄' }}</span></button></div>
+      <span [class]="ui.statusClass(order.status)">{{ ui.displayStatus(order.status) }}</span><strong class="customer-order-total">{{ ui.formatMoney(order.totalAmount) }}</strong>
+      @if (ui.canCancelOrder(order.status)) { <button class="quiet-button" type="button" (click)="ui.cancelOrder(order.id)">Cancel <span>×</span></button> }
+      @if (ui.isOrderExpanded(order.id)) {
+        <div class="order-detail-panel customer-order-detail-panel"><div class="order-detail-contact"><span class="eyebrow">CUSTOMER</span><strong>{{ ui.customerName(order.userId) }}</strong><span>{{ ui.customerEmail(order.userId) }}</span></div><div class="order-detail-address"><span class="eyebrow">DELIVERY ADDRESS</span><span>{{ ui.orderAddress(order) }}</span></div><div class="order-detail-products"><span class="eyebrow">PRODUCTS ORDERED</span>@for (item of order.items; track $index) { <div class="order-product-line">@if (ui.orderItemImage(item); as imageUrl) { <img [src]="imageUrl" [alt]="item.productName" /> } @else { <span class="order-product-image-empty">✳</span> }<span class="order-product-name">{{ item.productName }} × {{ item.quantity }}</span><strong>{{ ui.formatMoney(item.lineTotal) }}</strong></div> } @empty { <span>No products were returned for this order.</span> }</div></div>
+      }
+    </article>
+  } @empty {
+    <div class="empty-state"><span>✳</span><h3>Your order history is waiting.</h3><p>When you place an order, it will appear here.</p><button class="button button-dark" type="button" (click)="ui.chooseSection('Shop')">Browse products</button></div>
+  }
+</div>

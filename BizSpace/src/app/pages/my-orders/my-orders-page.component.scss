@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.orders-list {
+  margin: 27px 0 46px;
+}
+.customer-order-card {
+  min-height: 80px;
+  display: grid;
+  grid-template-columns: 43px 1.2fr 120px 100px 110px;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.order-icon {
+  width: 33px;
+  height: 33px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #a5844c;
+  background: #f0ece2;
+  font-size: 15px;
+}
+.customer-order-info {
+  display: grid;
+  gap: 5px;
+}
+.customer-order-info strong {
+  font-size: 11px;
+}
+.customer-order-info span {
+  color: #98948a;
+  font-size: 9px;
+}
+.customer-order-total {
+  font-size: 11px;
+  text-align: right;
+}
+.customer-order-detail-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+@media (max-width: 620px) {
+  .customer-order-card {
+    grid-template-columns: 34px 1fr auto;
+    gap: 10px;
+    padding: 11px 0;
+  }
+  .customer-order-card .status-pill {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .customer-order-total {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .customer-order-card .quiet-button {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .orders-list {
+    margin-top: 15px;
+  }
+}

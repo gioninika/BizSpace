@@ -1,0 +1,7 @@
+<section class="page-intro slim-intro"><div><div class="eyebrow"><span class="eyebrow-line"></span> SAVED PRODUCTS</div><h1>Wishlist<span class="gold-period">.</span></h1></div><p>Keep your favorite finds close.</p></section>
+<div class="section-heading saved-heading"><div><span class="eyebrow">{{ state.savedProducts().length }} PRODUCTS WISHLISTED</span><h2>Saved products</h2></div><button class="text-link" type="button" (click)="ui.chooseSection('Shop')">Find something new <span>↗</span></button></div>
+@if (!auth.isAuthenticated()) {
+  <div class="empty-state"><span>♡</span><h3>Sign in to see your wishlist.</h3><p>Your saved products stay connected to your BizSpace account.</p><button class="button button-dark" type="button" (click)="ui.openAuth('login')">Sign in</button></div>
+} @else {
+  <app-product-grid [products]="state.savedProducts()" emptyTitle="Nothing saved yet." emptyCopy="Save products you would like to come back to." />
+}
