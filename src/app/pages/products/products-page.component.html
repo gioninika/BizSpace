@@ -1,0 +1,10 @@
+<section class="shop-heading page-intro">
+  <div><div class="eyebrow"><span class="eyebrow-line"></span> PRODUCTS FROM BIZSPACE STORES</div><h1>Products<span class="gold-period">.</span></h1></div>
+  <p>Thoughtful finds from independent<br />brands and small shops.</p>
+</section>
+<app-product-filters />
+<div class="section-heading listing-heading"><div><span class="eyebrow">{{ state.productResults().length }} PRODUCTS</span><h2>{{ state.categoryId() ? state.selectedCategoryName() : 'All the good things' }}</h2></div><span class="sort-label">{{ state.productTotalCount() }} in marketplace</span></div>
+<app-product-grid [products]="state.productResults()" />
+@if (state.products().length < state.productTotalCount()) {
+  <div class="load-more-row"><button class="button button-outline" type="button" (click)="state.loadMoreProducts()" [disabled]="state.catalogLoading()">{{ state.catalogLoading() ? 'Loading…' : 'Load more products' }}</button></div>
+}

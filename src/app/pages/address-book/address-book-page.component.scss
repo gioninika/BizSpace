@@ -1,0 +1,152 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.address-card,
+.address-editor {
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.address-editor-heading h2 {
+  margin: 0;
+  color: #383731;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+}
+.address-editor > label {
+  display: grid;
+  gap: 7px;
+  color: #77736a;
+  font-size: 9px;
+  font-weight: 600;
+}
+.address-editor input {
+  width: 100%;
+  height: 39px;
+  padding: 0 10px;
+  border: 1px solid #e4e1d9;
+  border-radius: 2px;
+  outline: 0;
+  background: #fff;
+  color: var(--ink);
+  font-size: 10px;
+}
+.address-book-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.address-book-toolbar > div {
+  display: grid;
+  gap: 6px;
+}
+.address-book-toolbar p {
+  margin: 0;
+  color: #89857c;
+  font-size: 9px;
+}
+.address-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 13px;
+}
+.address-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 17px;
+}
+.address-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.address-label-mark {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  background: #f0ede5;
+  color: #987b49;
+  font-size: 16px;
+}
+.address-card-label {
+  overflow: hidden;
+  color: #3a3933;
+  font-family: var(--serif);
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.address-card address {
+  min-height: 75px;
+  padding: 13px 0;
+  color: #79756b;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.8;
+}
+.address-card-actions {
+  display: flex;
+  gap: 17px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #f0eee9;
+}
+.address-card-actions .text-link {
+  font-size: 9px;
+}
+.address-delete {
+  color: #a5584b;
+}
+.address-empty {
+  grid-column: 1 / -1;
+  min-height: 240px;
+}
+.address-editor {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 21px;
+}
+.address-editor-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--line);
+}
+.address-editor-heading > div {
+  display: grid;
+  gap: 6px;
+}
+.address-editor .form-row {
+  margin: 0;
+}
+.address-editor .modal-actions {
+  margin-top: 3px;
+}
+
+@media (max-width: 620px) {
+  .address-book-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .address-card-grid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .address-card {
+    padding: 14px;
+  }
+  .address-editor {
+    padding: 15px;
+  }
+}
