@@ -1,0 +1,45 @@
+@if (state.selectedProduct(); as product) {
+  <section class="product-detail-page" aria-label="Product details">
+    <div class="product-detail-gallery">
+      <div class="product-detail-visual">
+        @if (ui.selectedProductImageUrl() || product.imageUrl) { <img [src]="ui.selectedProductImageUrl() || product.imageUrl" [alt]="product.name" /> }
+        @else { <div class="product-image-empty">{{ ui.categoryIcon(product.categoryName) }}</div> }
+        @if (product.discountPercent > 0) { <span class="product-badge">−{{ product.discountPercent }}%</span> }
+      </div>
+      @if (product.images.length > 1) {
+        <div class="product-detail-thumbnails" aria-label="More product photos">
+          @for (image of ui.orderedProductImages(product); track image.id) {
+            <button type="button" [class.active]="ui.selectedProductImageUrl() === image.secureUrl" [attr.aria-label]="'Show photo ' + (image.sortOrder + 1)" (click)="ui.selectProductImage(image.secureUrl)"><img [src]="image.secureUrl" [alt]="product.name + ' photo ' + (image.sortOrder + 1)" /></button>
+          }
+        </div>
+      }
+    </div>
+    <div class="product-detail-copy">
+      <button class="product-back-link" type="button" (click)="ui.closeProduct()"><span>←</span> Back to {{ state.section() === 'Stores' ? state.selectedCustomerStore()?.name || 'stores' : state.section() === 'Wishlist' ? 'wishlist' : 'products' }}</button>
+      <div class="eyebrow product-detail-eyebrow"><span class="eyebrow-line"></span> {{ product.storeName || 'BIZSPACE STORE' }} · {{ product.categoryName }}</div>
+      <h1>{{ product.name }}<span class="gold-period">.</span></h1>
+      @if (product.brand) { <p class="product-detail-brand">By {{ product.brand }}</p> }
+      @if (product.reviewCount > 0) { <div class="product-detail-rating">★ {{ product.averageRating | number: '1.1-1' }} <span>({{ product.reviewCount }} {{ product.reviewCount === 1 ? 'review' : 'reviews' }})</span></div> }
+      <div class="product-review-actions"><button class="product-review-link" type="button" (click)="ui.openProductReviews(product.id)">See reviews ({{ product.reviewCount }})</button>
+        @if (!auth.isAuthenticated()) { <button class="product-review-link" type="button" (click)="ui.openReviewForm()">Sign in to review</button> }
+        @else if (auth.role() === 'Customer') { @if (ui.currentUserHasReviewed()) { <span class="product-review-already">You’ve reviewed this product</span> } @else { <button class="product-review-link" type="button" [disabled]="ui.reviewsLoading()" (click)="ui.openReviewForm()">Write a review</button> } }
+      </div>
+      <div class="product-detail-price"><strong>{{ ui.formatMoney(product.effectivePrice) }}</strong>@if (product.discountPercent > 0) { <del>{{ ui.formatMoney(product.price) }}</del><span>{{ product.discountPercent }}% off</span> }</div>
+      <p class="product-detail-description">{{ product.description || 'Thoughtfully selected from an independent BizSpace store.' }}</p>
+      <div class="product-detail-stock" [class.out-of-stock]="product.stock <= 0"><span class="context-dot"></span>{{ product.stock > 0 ? 'In stock · ' + product.stock + ' available' : 'Currently out of stock' }}</div>
+      <div class="product-detail-actions"><button class="button button-dark" type="button" [disabled]="!ui.productCanBeAdded(product)" (click)="ui.addToCart(product.id)">Add to bag <span>↗</span></button><button class="product-detail-save" type="button" [class.is-saved]="ui.isSaved(product.id)" (click)="ui.toggleSaved(product.id)">{{ ui.isSaved(product.id) ? '♥ Saved to wishlist' : '♡ Save to wishlist' }}</button></div>
+      @if (ui.reviewFormOpen()) {
+        <form class="product-review-form" #reviewForm (submit)="$event.preventDefault(); ui.submitProductReview(product.id, reviewForm)">
+          <div class="product-review-form-heading"><div><span class="eyebrow">YOUR REVIEW</span><h2>Share your thoughts</h2></div><button type="button" class="drawer-close" aria-label="Close review form" (click)="ui.reviewFormOpen.set(false)">×</button></div>
+          <label>Rating<select name="rating" required><option value="5">5 stars — Loved it</option><option value="4">4 stars — Really good</option><option value="3">3 stars — It was good</option><option value="2">2 stars — Could be better</option><option value="1">1 star — Not for me</option></select></label>
+          <label>Your review<textarea name="comment" rows="4" maxlength="2000" placeholder="What should other customers know?"></textarea></label>
+          @if (ui.reviewFormError()) { <p class="form-error">{{ ui.reviewFormError() }}</p> }
+          <div class="product-review-form-actions"><button type="button" class="button button-outline" (click)="ui.reviewFormOpen.set(false)">Cancel</button><button type="submit" class="button button-dark" [disabled]="ui.reviewSubmitting()">{{ ui.reviewSubmitting() ? 'Submitting…' : 'Submit review' }} <span>↗</span></button></div>
+        </form>
+      }
+      <button class="product-detail-store" type="button" (click)="ui.openCustomerStore(product.storeId)"><span class="marketplace-store-mark">{{ ui.categoryIcon(product.storeName) }}</span><span><small>SOLD BY</small><strong>{{ product.storeName || 'Independent BizSpace store' }}</strong></span><span class="marketplace-store-arrow">↗</span></button>
+    </div>
+  </section>
+} @else {
+  <div class="loading-state" role="status"><span class="loading-spinner"></span><span>Loading product…</span></div>
+}

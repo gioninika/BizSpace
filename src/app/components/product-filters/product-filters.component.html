@@ -1,0 +1,35 @@
+<div class="catalog-toolbar">
+  <div class="filter-row" aria-label="Product categories">
+    <button class="filter-chip" type="button" [class.active]="!state.categoryId()" (click)="state.setCategory(0)">All</button>
+    @for (category of state.topLevelCategories(); track category.id) {
+      <button class="filter-chip" type="button" [class.active]="state.categoryId() === category.id" (click)="state.setCategory(category.id)">
+        {{ category.name }}
+      </button>
+    }
+  </div>
+  <label class="search-box catalog-search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 4.3 4.3"></path></svg>
+    <input type="search" placeholder="Search products" aria-label="Search products" [value]="state.search()" (input)="state.setSearch($any($event.target).value)" />
+  </label>
+  <div class="product-filter-controls">
+    <label class="product-filter-field subcategory-filter">Subcategory
+      <select [value]="state.subcategoryId() ?? ''" (change)="state.setSubcategory(+$any($event.target).value)">
+        <option value="">All subcategories</option>
+        @for (category of state.filterSubcategories(); track category.id) { <option [value]="category.id">{{ ui.categoryPath(category.id) }}</option> }
+      </select>
+    </label>
+    <label class="product-filter-field">Brand
+      <select [value]="state.brandFilter()" (change)="state.setBrandFilter($any($event.target).value)">
+        <option value="">All brands</option>
+        @for (brand of state.brandOptions(); track brand) { <option [value]="brand">{{ brand }}</option> }
+      </select>
+    </label>
+    <label class="product-filter-field">Min price
+      <input type="number" min="0" step="0.01" placeholder="0" [value]="state.minPrice() ?? ''" (input)="state.setMinPrice($any($event.target).value === '' ? null : +$any($event.target).value)" />
+    </label>
+    <label class="product-filter-field">Max price
+      <input type="number" min="0" step="0.01" placeholder="Any" [value]="state.maxPrice() ?? ''" (input)="state.setMaxPrice($any($event.target).value === '' ? null : +$any($event.target).value)" />
+    </label>
+    <button class="product-filter-clear" type="button" (click)="state.setSearch(''); state.clearProductFilters()">Clear filters</button>
+  </div>
+</div>

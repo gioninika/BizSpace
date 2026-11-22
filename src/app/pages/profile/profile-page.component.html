@@ -1,0 +1,26 @@
+<section class="page-intro slim-intro"><div><div class="eyebrow"><span class="eyebrow-line"></span> YOUR ACCOUNT</div><h1>Profile<span class="gold-period">.</span></h1></div><p>Keep your account details up to date.</p></section>
+@if (!auth.isAuthenticated()) {
+  <div class="empty-state"><span>◎</span><h3>Sign in to manage your profile.</h3><button class="button button-dark" type="button" (click)="ui.openAuth('login')">Sign in</button></div>
+} @else {
+  <section class="account-settings-page">
+    <div class="account-settings-card">
+      <div class="account-panel-heading"><span class="avatar avatar-gold account-large-avatar">{{ (state.currentUser()?.displayName || 'U').charAt(0) }}</span><div><span class="eyebrow">ACCOUNT DETAILS</span><h2>Personal information</h2></div></div>
+      <form class="account-settings-form" #profileForm (submit)="$event.preventDefault(); ui.saveProfile(profileForm)">
+        <label>Display name<input name="displayName" required minlength="2" maxlength="120" autocomplete="name" [value]="state.currentUser()?.displayName || ''" /></label>
+        <label>Email address<input type="email" [value]="state.currentUser()?.email || ''" readonly /></label>
+        @if (ui.profileError()) { <p class="form-error" role="alert">{{ ui.profileError() }}</p> }
+        <button class="button button-dark" type="submit" [disabled]="ui.profileBusy()">{{ ui.profileBusy() ? 'Saving…' : 'Save profile' }} <span>↗</span></button>
+      </form>
+      <section class="account-security-section"><div><span class="eyebrow">ACCOUNT SECURITY</span><h2>Change password</h2><p>Choose a new password for your account.</p></div>
+        <form class="account-settings-form" #passwordForm (submit)="$event.preventDefault(); ui.changePassword(passwordForm)">
+          <label>Current password<input name="currentPassword" type="password" required autocomplete="current-password" /></label>
+          <label>New password<input name="newPassword" type="password" required minlength="8" maxlength="128" autocomplete="new-password" /></label>
+          <label>Confirm new password<input name="confirmPassword" type="password" required minlength="8" maxlength="128" autocomplete="new-password" /></label>
+          @if (ui.passwordError()) { <p class="form-error" role="alert">{{ ui.passwordError() }}</p> }
+          <button class="button button-dark" type="submit" [disabled]="ui.passwordBusy()">{{ ui.passwordBusy() ? 'Changing…' : 'Change password' }} <span>↗</span></button>
+        </form>
+      </section>
+    </div>
+    <aside class="account-settings-note"><span class="eyebrow">BIZSPACE ACCOUNT</span><strong>{{ state.currentUser()?.displayName }}</strong><span>{{ state.currentUser()?.email }}</span><div><small>MEMBER SINCE</small><b>{{ ui.formatDate(state.currentUser()?.createdAtUtc || '') }}</b></div></aside>
+  </section>
+}

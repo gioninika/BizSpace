@@ -1,0 +1,37 @@
+:host {
+  display: block;
+  margin-top: auto;
+}
+.store-footer {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  color: #9a968c;
+  font-size: 9px;
+}
+.footer-brand .brand-mark {
+  font-size: 27px;
+}
+.footer-brand .brand-name {
+  font-size: 14px;
+}
+.store-footer {
+  gap: 12px;
+}
+@media (max-width: 620px) {
+  .store-footer {
+    min-height: 62px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 13px 0;
+  }
+  .store-footer > span:last-child {
+    display: none;
+  }
+  .store-footer > span:nth-child(2) {
+    font-size: 8px;
+  }
+}

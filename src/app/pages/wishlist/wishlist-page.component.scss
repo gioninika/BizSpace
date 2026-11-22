@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.saved-heading h2 {
+  margin-top: 5px;
+  font-size: 24px;
+}
+.saved-heading {
+  margin: 32px 0 19px;
+}
+@media (max-width: 620px) {
+  .saved-heading h2 {
+    font-size: 21px;
+  }
+}

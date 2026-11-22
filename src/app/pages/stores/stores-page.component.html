@@ -1,0 +1,25 @@
+@if (state.selectedCustomerStore(); as store) {
+  <section class="page-intro slim-intro"><div><div class="eyebrow"><span class="eyebrow-line"></span> AN INDEPENDENT BIZSPACE STORE</div><h1>{{ store.name }}<span class="gold-period">.</span></h1></div><p>{{ store.description || 'Thoughtful products from an independent store.' }}</p></section>
+  <div class="store-catalog-back"><button class="text-link" type="button" (click)="ui.chooseSection('Stores')"><span>←</span> All stores</button></div>
+  <app-product-filters />
+  <div class="section-heading listing-heading"><div><span class="eyebrow">{{ state.productResults().length }} PRODUCTS</span><h2>From {{ store.name }}</h2></div><span class="sort-label">in this store</span></div>
+  <app-product-grid [products]="state.productResults()" emptyTitle="This store has no products yet." emptyCopy="Check back later for new products from this store." />
+} @else {
+  <section class="page-intro slim-intro"><div><div class="eyebrow"><span class="eyebrow-line"></span> INDEPENDENT BY NATURE</div><h1>Stores<span class="gold-period">.</span></h1></div><p>Meet the independent shops<br />behind the good finds.</p></section>
+  @if (state.catalogLoading() && !state.stores().length) {
+    <div class="loading-state" role="status"><span class="loading-spinner"></span><span>Loading independent stores…</span></div>
+  } @else {
+    <section class="store-directory" aria-label="Independent BizSpace stores">
+      <div class="store-directory-toolbar"><div class="store-directory-heading"><span class="eyebrow">{{ state.filteredStores().length }} {{ state.filteredStores().length === 1 ? 'STORE' : 'STORES' }}</span><p>Search by store name or description, then select a store to browse its products.</p></div>
+        <label class="search-box store-directory-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 4.3 4.3"></path></svg><input type="search" placeholder="Search stores" aria-label="Search stores" [value]="state.storeSearch()" (input)="state.storeSearch.set($any($event.target).value)" />@if (state.storeSearch()) { <button class="store-search-clear" type="button" aria-label="Clear store search" (click)="state.storeSearch.set('')">×</button> }</label>
+      </div>
+      <div class="store-directory-grid">
+        @for (store of state.filteredStores(); track store.id) {
+          <button class="marketplace-store-card" type="button" (click)="ui.openCustomerStore(store.id)"><span class="marketplace-store-mark">{{ ui.categoryIcon(store.name) }}</span><span class="marketplace-store-copy"><strong>{{ store.name }}</strong><span>{{ store.description || 'An independent BizSpace store.' }}</span></span><span class="marketplace-store-arrow" aria-hidden="true">↗</span></button>
+        } @empty {
+          <div class="empty-state store-directory-empty"><span>⌕</span><h3>{{ state.stores().length && state.storeSearch().trim() ? 'No stores match your search.' : 'No stores are listed yet.' }}</h3><p>{{ state.stores().length && state.storeSearch().trim() ? 'Try another store name or description.' : 'Independent stores will appear here when they join BizSpace.' }}</p>@if (state.storeSearch()) { <button class="text-link" type="button" (click)="state.storeSearch.set('')">Clear search</button> }</div>
+        }
+      </div>
+    </section>
+  }
+}
