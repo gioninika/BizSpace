@@ -1,0 +1,67 @@
+# Private deployment settings: this file contains database and signing secrets.
+
+name: bizspace
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      # Keep this password in sync with the API connection string below.
+      MSSQL_SA_PASSWORD: "BizSpace-64A79374D4CCEC75B9A08A0441D393A659580095FA798E27!"
+    volumes:
+      - bizspace-sql-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1"
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+
+  bizspace:
+    build:
+      context: ./BizSpace.API
+      dockerfile: BizSpace.API/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      Database__ApplyMigrations: "true"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BizSpace;User Id=sa;Password=BizSpace-64A79374D4CCEC75B9A08A0441D393A659580095FA798E27!;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+      Jwt__Key: "FA4FB52A4CD842B396EE4803F3FC2A46AA41161A2EE08A2D7A0E6A928718AD4B"
+      Jwt__Issuer: "BizSpace.Api"
+      Jwt__Audience: "BizSpace.Client"
+      Auth__CodeHmacKey: "045F943F49A69651C68A0E1318E92DCE726EABD41004EEDFFD59080BF839F1C2"
+      Cors__AllowedOrigins__0: "http://${BIZSPACE_HOST_IP:?Find the VM IP and set BIZSPACE_HOST_IP}:4200"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./BizSpace
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      BIZSPACE_HOST_IP: "${BIZSPACE_HOST_IP:?Find the VM IP and set BIZSPACE_HOST_IP}"
+    command:
+      - sh
+      - -c
+      - >-
+        sed -i "s|http://localhost:8080/api|http://$${BIZSPACE_HOST_IP}:8080/api|" /app/dist/BizSpace/browser/bizspace-config.js
+        && exec node dist/BizSpace/server/server.mjs
+    depends_on:
+      bizspace:
+        condition: service_started
+    ports:
+      - "4200:4000"
+
+volumes:
+  bizspace-sql-data:
