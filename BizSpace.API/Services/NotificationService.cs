@@ -20,8 +20,8 @@ public sealed class NotificationService(
         var query = notifications.Query.AsNoTracking().Include(x => x.Sender)
             .Where(x => x.RecipientUserId == userId);
         if (unreadOnly) query = query.Where(x => x.ReadAtUtc == null);
-        var result = await query.OrderByDescending(x => x.Id).Take(200)
-            .OrderBy(x => x.Id).ToListAsync();
+        var result = await query.OrderByDescending(x => x.CreatedAtUtc)
+            .ThenByDescending(x => x.Id).Take(200).ToListAsync();
         return result.Select(ToDto).ToList();
     }
 

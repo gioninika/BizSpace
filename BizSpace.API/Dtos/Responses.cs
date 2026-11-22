@@ -178,6 +178,8 @@ public sealed class OrderDto
 {
     public int Id { get; set; }
     public int UserId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
     public OrderStatus Status { get; set; }
     public decimal TotalAmount { get; set; }
     public ShippingAddressRequest ShippingAddress { get; set; } = new();
@@ -191,6 +193,7 @@ public sealed class OrderLineDto
 {
     public int? ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
+    public string? ImageUrl { get; set; }
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal LineTotal { get; set; }

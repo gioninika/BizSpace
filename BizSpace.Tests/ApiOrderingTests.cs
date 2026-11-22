@@ -65,7 +65,7 @@ public sealed class ApiOrderingTests
     }
 
     [Fact]
-    public async Task OrderListsAndLines_AreSortedById()
+    public async Task AdminOrderList_IsNewestFirstAndIncludesCustomerAndPrimaryImage()
     {
         await using var db = await CreateDatabaseAsync();
         var service = new OrderService(
@@ -75,8 +75,30 @@ public sealed class ApiOrderingTests
 
         var orders = await service.GetAllAsync(userId: 2, isAdmin: true);
 
-        Assert.Equal([2, 15], orders.Select(order => order.Id));
-        Assert.Equal([4, 30], orders[0].Items.Select(item => item.ProductId));
+        Assert.Equal([15, 2], orders.Select(order => order.Id));
+        Assert.Equal("Customer", orders[0].CustomerName);
+        Assert.Equal("customer@example.test", orders[0].CustomerEmail);
+        Assert.Equal([12], orders[0].Items.Select(item => item.ProductId));
+        Assert.Equal([4, 30], orders[1].Items.Select(item => item.ProductId));
+        Assert.Equal("https://example.test/primary.jpg", orders[1].Items[0].ImageUrl);
+        Assert.Null(orders[1].Items[1].ImageUrl);
+    }
+
+    [Fact]
+    public async Task ManagerOrderList_IsNewestFirstAndIncludesCustomerAndProductImages()
+    {
+        await using var db = await CreateDatabaseAsync();
+        var service = new OrderService(
+            new GenericRepository<Order>(db),
+            carts: null!, cartItems: null!, addresses: null!, unitOfWork: null!,
+            notifications: null!, pricing: null!);
+
+        var orders = await service.GetForStoreManagerAsync(managerId: 1);
+
+        Assert.Equal([15, 2], orders.Select(order => order.Id));
+        Assert.All(orders, order => Assert.Equal("Customer", order.CustomerName));
+        Assert.Equal("customer@example.test", orders[0].CustomerEmail);
+        Assert.Equal("https://example.test/primary.jpg", orders[1].Items[0].ImageUrl);
     }
 
     [Fact]
@@ -105,7 +127,7 @@ public sealed class ApiOrderingTests
     }
 
     [Fact]
-    public async Task Notifications_AreReturnedInIdOrder()
+    public async Task Notifications_AreNewestFirstAndUnreadFilterIsPreserved()
     {
         await using var db = await CreateDatabaseAsync();
         var service = new NotificationService(
@@ -113,8 +135,10 @@ public sealed class ApiOrderingTests
             users: null!, stores: null!, hub: null!, NullLogger<NotificationService>.Instance);
 
         var notifications = await service.GetMineAsync(userId: 2, unreadOnly: false);
+        var unreadNotifications = await service.GetMineAsync(userId: 2, unreadOnly: true);
 
-        Assert.Equal([4, 17], notifications.Select(notification => notification.Id));
+        Assert.Equal([20, 4, 17], notifications.Select(notification => notification.Id));
+        Assert.Equal([20, 4], unreadNotifications.Select(notification => notification.Id));
     }
 
     [Fact]
@@ -161,10 +185,16 @@ public sealed class ApiOrderingTests
         new GenericRepository<Store>(db),
         new GenericRepository<ProductImage>(db),
         new GenericRepository<ProductImageDeletionJob>(db),
+        new GenericRepository<CartItem>(db),
+        new GenericRepository<OrderItem>(db),
+        new GenericRepository<WishlistItem>(db),
+        new GenericRepository<ProductReview>(db),
+        new GenericRepository<MarketingCampaignProduct>(db),
         notifications: null!,
-        new TestPricingService(),
+        pricing: new TestPricingService(),
         imageStorage: null!,
-        NullLogger<ProductService>.Instance);
+        unitOfWork: null!,
+        logger: NullLogger<ProductService>.Instance);
 
     private static async Task<StoreDbContext> CreateDatabaseAsync()
     {
@@ -196,9 +226,11 @@ public sealed class ApiOrderingTests
         db.SavedAddresses.AddRange(
             new SavedAddress { Id = 20, UserId = 2, Label = "Older ID" },
             new SavedAddress { Id = 3, UserId = 2, Label = "Newer ID" });
+        var now = DateTime.UtcNow;
         db.Notifications.AddRange(
-            new Notification { Id = 17, RecipientUserId = 2, Title = "Older ID", Message = "Message", CreatedAtUtc = DateTime.UtcNow.AddDays(-2) },
-            new Notification { Id = 4, RecipientUserId = 2, Title = "Newer ID", Message = "Message", CreatedAtUtc = DateTime.UtcNow });
+            new Notification { Id = 17, RecipientUserId = 2, Title = "Older timestamp", Message = "Message", CreatedAtUtc = now.AddDays(-2), ReadAtUtc = now },
+            new Notification { Id = 4, RecipientUserId = 2, Title = "Newer timestamp", Message = "Message", CreatedAtUtc = now },
+            new Notification { Id = 20, RecipientUserId = 2, Title = "Newest tie-break ID", Message = "Message", CreatedAtUtc = now });
         db.ProductReviews.AddRange(
             new ProductReview { Id = 18, ProductId = 4, UserId = 2, Rating = 5, Comment = "Older ID", CreatedAtUtc = DateTime.UtcNow.AddDays(-2) },
             new ProductReview { Id = 2, ProductId = 4, UserId = 2, Rating = 4, Comment = "Newer ID", CreatedAtUtc = DateTime.UtcNow });
@@ -210,7 +242,7 @@ public sealed class ApiOrderingTests
             ShippingAddress = new ShippingAddress(),
             PaymentMethod = "Cash",
             DeliveryMethod = "Pickup",
-            CreatedAtUtc = DateTime.UtcNow.AddDays(-2),
+            CreatedAtUtc = now,
             Items = [new OrderItem { Id = 3, ProductId = 12, ProductName = "Middle Product", Quantity = 1, Price = 75m }]
         };
         var secondOrder = new Order
@@ -220,7 +252,7 @@ public sealed class ApiOrderingTests
             ShippingAddress = new ShippingAddress(),
             PaymentMethod = "Cash",
             DeliveryMethod = "Pickup",
-            CreatedAtUtc = DateTime.UtcNow,
+            CreatedAtUtc = now.AddDays(-2),
             Items =
             [
                 new OrderItem { Id = 31, ProductId = 30, ProductName = "Alpha Product", Quantity = 1, Price = 100m },

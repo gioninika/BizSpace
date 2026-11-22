@@ -18,15 +18,18 @@ public sealed class OrderService(
 {
     public async Task<List<OrderDto>> GetAllAsync(int userId, bool isAdmin)
     {
-        IQueryable<Order> query = orders.Query.AsNoTracking().Include(x => x.Items);
+        IQueryable<Order> query = orders.Query.AsNoTracking().Include(x => x.User)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Images);
         if (!isAdmin) query = query.Where(x => x.UserId == userId);
-        var orderList = await query.OrderBy(x => x.Id).ToListAsync();
+        var orderList = await query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id).ToListAsync();
         return orderList.Select(order => ToDto(order)).ToList();
     }
 
     public async Task<OrderDto> GetByIdAsync(int id, int userId, bool isAdmin)
     {
-        var order = await orders.Query.AsNoTracking().Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == id)
+        var order = await orders.Query.AsNoTracking().Include(x => x.User)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Images)
+            .FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new KeyNotFoundException("Order was not found.");
         if (!isAdmin && order.UserId != userId)
             throw new ForbiddenException("You cannot access this order.");
@@ -36,10 +39,12 @@ public sealed class OrderService(
     public async Task<List<OrderDto>> GetForStoreManagerAsync(int managerId)
     {
         var managerOrders = await orders.Query.AsNoTracking()
+            .Include(x => x.User)
             .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Store)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Images)
             .Where(x => x.Items.Any(item => item.Product != null && item.Product.Store != null &&
                 item.Product.Store.ManagerId == managerId))
-            .OrderBy(x => x.Id)
+            .OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id)
             .ToListAsync();
         return managerOrders.Select(order => ToDto(order, managerId)).ToList();
     }
@@ -47,7 +52,9 @@ public sealed class OrderService(
     public async Task<OrderDto> GetForStoreManagerAsync(int id, int managerId)
     {
         var order = await orders.Query.AsNoTracking()
+            .Include(x => x.User)
             .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Store)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Images)
             .FirstOrDefaultAsync(x => x.Id == id && x.Items.Any(item => item.Product != null &&
                 item.Product.Store != null && item.Product.Store.ManagerId == managerId))
             ?? throw new KeyNotFoundException("Order was not found.");
@@ -157,7 +164,9 @@ public sealed class OrderService(
         if (nextStatus == OrderStatus.Cancelled)
             throw new BusinessRuleException("Use the cancel endpoint to cancel an order.");
 
-        var order = await orders.Query.Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Store)
+        var order = await orders.Query.Include(x => x.User)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Store)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Images)
             .FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new KeyNotFoundException("Order was not found.");
         if (managerId is int scopedManagerId && !HasStoreManagerItems(order, scopedManagerId))
@@ -171,7 +180,9 @@ public sealed class OrderService(
 
     public async Task<OrderDto> CancelAsync(int id, int userId, bool isAdmin, int? managerId = null)
     {
-        var order = await orders.Query.Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Store)
+        var order = await orders.Query.Include(x => x.User)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Store)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Images)
             .FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new KeyNotFoundException("Order was not found.");
         if (managerId is int scopedManagerId && !HasStoreManagerItems(order, scopedManagerId))
@@ -213,9 +224,10 @@ public sealed class OrderService(
     {
         if (!isAdmin && targetUserId != callerId)
             throw new ForbiddenException("You can view only your own orders.");
-        var userOrders = await orders.Query.AsNoTracking().Include(x => x.Items)
+        var userOrders = await orders.Query.AsNoTracking().Include(x => x.User)
+            .Include(x => x.Items).ThenInclude(x => x.Product).ThenInclude(x => x!.Images)
             .Where(x => x.UserId == targetUserId)
-            .OrderBy(x => x.Id)
+            .OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id)
             .ToListAsync();
         return userOrders.Select(order => ToDto(order)).ToList();
     }
@@ -260,6 +272,8 @@ public sealed class OrderService(
         {
             Id = order.Id,
             UserId = order.UserId,
+            CustomerName = order.User?.DisplayName ?? string.Empty,
+            CustomerEmail = order.User?.Email ?? string.Empty,
             Status = order.Status,
             TotalAmount = managerId is null
                 ? order.TotalAmount
@@ -278,6 +292,8 @@ public sealed class OrderService(
             {
                 ProductId = x.ProductId,
                 ProductName = x.ProductName,
+                ImageUrl = x.Product?.Images.OrderBy(image => image.SortOrder)
+                    .Select(image => image.SecureUrl).FirstOrDefault(),
                 Quantity = x.Quantity,
                 UnitPrice = x.Price,
                 LineTotal = x.Price * x.Quantity
