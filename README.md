@@ -2,6 +2,171 @@
 
 BizSpace is a marketplace for independent stores. Customers can browse products, manage a wishlist and addresses, and place orders. Store managers manage products, orders, campaigns, and reviews; administrators manage the marketplace.
 
+## Architecture: C4 model
+
+The diagrams below show BizSpace at four levels: the people and outside services around it, the applications and database it runs, the main parts inside the API, and one example of how order code is connected. For a printable version, see the [plain-language C4 model PDF](BizSpace-C4-Model-Plain-Language.pdf).
+
+### Level 1: System context - who uses BizSpace?
+
+```mermaid
+flowchart LR
+    customer([Customer<br/>Person])
+    manager([Store manager<br/>Person])
+    admin([Marketplace administrator<br/>Person])
+
+    subgraph system_boundary["BizSpace marketplace"]
+        bizspace["BizSpace<br/>Multi-store online marketplace"]
+    end
+
+    cloudinary["Cloudinary<br/>Outside service<br/>Stores product and category images"]
+    smtp["SMTP email service<br/>Outside service<br/>Sends account email"]
+
+    customer -->|"Browse, save items, place and track orders"| bizspace
+    manager -->|"Manage stores, products, orders, campaigns and reviews"| bizspace
+    admin -->|"Manage marketplace users, stores and catalog"| bizspace
+    bizspace -->|"Upload or delete images"| cloudinary
+    bizspace -->|"Send verification and password reset email"| smtp
+```
+
+### Level 2: Containers - what runs BizSpace?
+
+The browser app and page server are separate runtime containers built from the Angular project. Docker Compose runs the page server, API, and SQL database.
+
+```mermaid
+flowchart LR
+    people([Customer, store manager<br/>or administrator])
+
+    subgraph system_boundary["BizSpace marketplace"]
+        browser["Browser app<br/>Angular 20<br/>The screens people use"]
+        pages["Page server<br/>Angular SSR, Node.js 22<br/>Returns the first web page"]
+        api["BizSpace backend/API<br/>ASP.NET Core 10<br/>Applies rules and answers requests"]
+        db[("Database<br/>SQL Server 2022<br/>Stores marketplace data")]
+    end
+
+    cloudinary["Cloudinary<br/>Outside image service"]
+    smtp["SMTP email service<br/>Outside email service"]
+
+    people -->|"Use the screens"| browser
+    browser -->|"Request a page"| pages
+    pages -->|"Return page and files"| browser
+    browser -->|"Send HTTPS requests with a login token"| api
+    api -->|"Read and save data"| db
+    api -->|"Upload and remove image files"| cloudinary
+    api -->|"Send email"| smtp
+```
+
+### Level 3: Components - what parts do the work inside the API?
+
+```mermaid
+flowchart LR
+    browser["Browser app"]
+
+    subgraph api_boundary["BizSpace backend/API - ASP.NET Core 10"]
+        routes["Request routes<br/>Controllers and notification hub"]
+        services["Business services<br/>Apply rules for accounts, catalog,<br/>stores, orders and other features"]
+        data["Database access<br/>Repositories and transaction helper"]
+        context["StoreDbContext<br/>EF Core maps API code to SQL Server"]
+        worker["Image cleanup worker<br/>Retries queued image removals"]
+        adapters["Outside-service connectors<br/>Cloudinary images and SMTP email"]
+    end
+
+    db[("SQL Server<br/>Marketplace data")]
+    cloudinary["Cloudinary<br/>Outside service"]
+    smtp["SMTP provider<br/>Outside service"]
+
+    browser -->|"Browser requests"| routes
+    routes -->|"Hand work to"| services
+    services -->|"Read or save"| data
+    data -->|"Use database mapping"| context
+    context -->|"Read and write"| db
+    services -->|"Send image or email work to"| adapters
+    adapters -->|"Image files"| cloudinary
+    adapters -->|"Email messages"| smtp
+    worker -->|"Load cleanup jobs"| context
+    worker -->|"Remove old images"| adapters
+    services -.->|"Can publish a notification"| routes
+```
+
+The Angular app currently gets notifications through regular API requests. The API has a SignalR notification hub, but the Angular app does not connect to it.
+
+### Level 4: Code - how does one order move through the code?
+
+This is a close-up of the order feature, not a diagram of every class. The controller receives the request, the service handles order work, and `OrderWorkflow` checks whether a status change is allowed.
+
+```mermaid
+classDiagram
+    class OrdersController {
+        +Create(...)
+        +UpdateStatus(...)
+        +Cancel(...)
+    }
+    class IOrderService {
+        <<interface>>
+        +CreateFromCartAsync(...)
+        +UpdateStatusAsync(...)
+    }
+    class OrderService {
+        +CreateFromCartAsync(...)
+        +UpdateStatusAsync(...)
+        +CancelAsync(...)
+    }
+    class OrderWorkflow {
+        <<static>>
+        +CanTransition(...)
+        +EnsureTransition(...)
+    }
+    class IGenericRepository_Order {
+        <<interface>>
+        +Query
+        +AddAsync(...)
+        +SaveAsync()
+    }
+    class IUnitOfWork {
+        <<interface>>
+        +BeginTransaction(...)
+        +SaveChangesAsync()
+    }
+    class Order {
+        +Id: int
+        +UserId: int
+        +Status: OrderStatus
+        +TotalAmount: decimal
+        +PaymentMethod: string
+        +DeliveryMethod: string
+    }
+    class OrderItem {
+        +ProductName: string
+        +Quantity: int
+        +Price: decimal
+    }
+    class ShippingAddress {
+        +StreetAddress: string
+        +City: string
+        +PostalCode: string
+        +Country: string
+    }
+    class OrderStatus {
+        <<enumeration>>
+        Pending
+        Paid
+        Shipped
+        Delivered
+        Cancelled
+    }
+
+    OrdersController --> IOrderService : calls
+    OrderService ..|> IOrderService : implements
+    OrderService --> OrderWorkflow : validates status changes
+    OrderService --> IGenericRepository_Order : reads and saves orders
+    OrderService --> IUnitOfWork : groups related saves
+    OrderService ..> Order : creates and updates
+    Order "1" *-- "1..*" OrderItem : contains
+    Order "1" *-- "1" ShippingAddress : has
+    Order --> OrderStatus : current status
+```
+
+Checkout records a payment method, but it does not call a payment provider.
+
 This workspace contains two projects:
 
 ```text
@@ -152,14 +317,6 @@ Card checkout is a project demo flow; no payment processor is connected.
 Before the first deployment, configure a self-hosted Linux x64 GitHub Actions runner with the labels `self-hosted`, `linux`, and `x64`. Keep the runner service online, install Docker Engine and the Docker Compose plugin, and use Actions Runner version 2.327.1 or later for `actions/checkout@v7`.
 
 Keep the private production `.env` on the self-hosted runner at `$HOME/BizSpace/BizSpace.API/.env`, matching the path used by the workflow. If it is elsewhere, set the GitHub repository **Actions variable** `BIZSPACE_ENV_FILE` to its absolute path. The production Compose file accepts either the Linux deployment names (`JWT_SIGNING_KEY`, `AUTH_CODE_HMAC_KEY`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, and `SMTP_*`) or the matching .NET setting names used in a local `.env` (`Jwt__Key`, `Auth__CodeHmacKey`, `SeedAdmin__Email`, `SeedAdmin__Password`, and `Email__*`). `BIZSPACE_DB_SA_PASSWORD` and the `Cloudinary__*` keys are the same in both formats. The JWT and HMAC keys must each be at least 32 bytes. Optional settings include `JWT_ISSUER` / `Jwt__Issuer` (default `BizSpace.Api`), `JWT_AUDIENCE` / `Jwt__Audience` (default `BizSpace.Client`), SMTP port (default `587`), sender name (default `BizSpace`), StartTLS (default `true`), and SMTP authentication (default `true`). The production Compose file builds the container-to-container SQL connection itself; its `ConnectionStrings__DefaultConnection` does not use the Windows/local SQL connection string in the `.env` file.
-
-To run the production stack manually from PowerShell with Docker Desktop, set the browser-facing host and pass the local env file:
-
-```powershell
-$env:BIZSPACE_HOST_IP = "localhost"
-docker compose --env-file .\BizSpace.API\.env -f .\docker-compose.production.yml up -d --build
-Remove-Item Env:BIZSPACE_HOST_IP
-```
 
 Use either the normal local `docker compose up --build` stack or the production stack on a given Docker engine at a time; they use the same ports.
 
