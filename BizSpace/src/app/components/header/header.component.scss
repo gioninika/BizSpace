@@ -234,6 +234,9 @@
     margin-left: 4px;
     gap: 6px;
   }
+  .topbar-context + .topbar-actions {
+    margin-left: auto;
+  }
   .profile-name,
 .topbar-divider {
     display: none;
@@ -299,6 +302,12 @@
     position: fixed;
     top: 55px;
     right: 10px;
+  }
+  .profile-popover {
+    width: min(230px, calc(100vw - 24px));
+    position: fixed;
+    top: calc(60px + env(safe-area-inset-top) + 8px);
+    right: 12px;
   }
 }
 
