@@ -1795,13 +1795,13 @@
                 name="startsAt"
                 type="datetime-local"
                 required
-                [value]="editingCampaign()?.startsAtUtc?.slice(0, 16) || ''" /></label
+                [value]="toLocalDateTimeInput(editingCampaign()?.startsAtUtc)" /></label
             ><label
               >Ends<input
                 name="endsAt"
                 type="datetime-local"
                 required
-                [value]="editingCampaign()?.endsAtUtc?.slice(0, 16) || ''"
+                [value]="toLocalDateTimeInput(editingCampaign()?.endsAtUtc)"
             /></label>
           </div>
           <label class="checkbox-label"

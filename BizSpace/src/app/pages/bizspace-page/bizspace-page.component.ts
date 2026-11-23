@@ -489,6 +489,13 @@ export class BizSpacePageComponent implements OnInit {
   protected formatDate(value: string): string {
     return value ? new Date(value).toLocaleDateString() : '—';
   }
+  protected toLocalDateTimeInput(value: string | undefined): string {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return localDate.toISOString().slice(0, 16);
+  }
   protected contactEmail(): string {
     const email =
       typeof window !== 'undefined' ? (window.bizSpaceConfig?.contactEmail?.trim() ?? '') : '';
