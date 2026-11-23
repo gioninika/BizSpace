@@ -151,6 +151,16 @@ Card checkout is a project demo flow; no payment processor is connected.
 
 Before the first deployment, configure a self-hosted Linux x64 GitHub Actions runner with the labels `self-hosted`, `linux`, and `x64`. Keep the runner service online, install Docker Engine and the Docker Compose plugin, and use Actions Runner version 2.327.1 or later for `actions/checkout@v7`.
 
-Add these GitHub repository **Actions secrets** before deployment: `BIZSPACE_DB_SA_PASSWORD`, `JWT_SIGNING_KEY`, `AUTH_CODE_HMAC_KEY`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. `JWT_SIGNING_KEY` and `AUTH_CODE_HMAC_KEY` must each be at least 32 bytes. Set optional repository **Actions variables** `SMTP_PORT` (default `587`), `SMTP_FROM_NAME` (default `BizSpace`), `SMTP_USE_STARTTLS` (default `true`), and `SMTP_USE_AUTHENTICATION` (default `true`). The workflow passes the secrets directly to Docker Compose; no production `.env` file needs to be stored on the runner. The deployment Compose file builds the container-to-container SQL connection itself, so `ConnectionStrings__DefaultConnection` remains for local or direct API runs.
+Keep the private production `.env` on the self-hosted runner at `$HOME/BizSpace/BizSpace.API/.env`, matching the path used by the workflow. If it is elsewhere, set the GitHub repository **Actions variable** `BIZSPACE_ENV_FILE` to its absolute path. The production Compose file accepts either the Linux deployment names (`JWT_SIGNING_KEY`, `AUTH_CODE_HMAC_KEY`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, and `SMTP_*`) or the matching .NET setting names used in a local `.env` (`Jwt__Key`, `Auth__CodeHmacKey`, `SeedAdmin__Email`, `SeedAdmin__Password`, and `Email__*`). `BIZSPACE_DB_SA_PASSWORD` and the `Cloudinary__*` keys are the same in both formats. The JWT and HMAC keys must each be at least 32 bytes. Optional settings include `JWT_ISSUER` / `Jwt__Issuer` (default `BizSpace.Api`), `JWT_AUDIENCE` / `Jwt__Audience` (default `BizSpace.Client`), SMTP port (default `587`), sender name (default `BizSpace`), StartTLS (default `true`), and SMTP authentication (default `true`). The production Compose file builds the container-to-container SQL connection itself; its `ConnectionStrings__DefaultConnection` does not use the Windows/local SQL connection string in the `.env` file.
+
+To run the production stack manually from PowerShell with Docker Desktop, set the browser-facing host and pass the local env file:
+
+```powershell
+$env:BIZSPACE_HOST_IP = "localhost"
+docker compose --env-file .\BizSpace.API\.env -f .\docker-compose.production.yml up -d --build
+Remove-Item Env:BIZSPACE_HOST_IP
+```
+
+Use either the normal local `docker compose up --build` stack or the production stack on a given Docker engine at a time; they use the same ports.
 
 The workflow determines the runner's IPv4 address for the browser and CORS settings. If that address is not reachable by users, set the Actions variable `BIZSPACE_HOST_IP` to the reachable IPv4 address or DNS name. Allow or forward ports `4200` (web app) and `8080` (API) through the VM and host firewall. The current production Compose file serves HTTP and writes an HTTP API URL into the browser bundle; public HTTPS also requires updating the reverse-proxy, API URL, and CORS origin settings.

@@ -1,4 +1,4 @@
-# GitHub Actions provides production settings as runner environment variables.
+# GitHub Actions reads production settings from the runner's private .env file.
 
 name: bizspace
 
@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "${BIZSPACE_DB_SA_PASSWORD:?Configure the BIZSPACE_DB_SA_PASSWORD Actions secret}"
+      MSSQL_SA_PASSWORD: "${BIZSPACE_DB_SA_PASSWORD:?Set BIZSPACE_DB_SA_PASSWORD in the runner .env file}"
     volumes:
       - bizspace-sql-data:/var/opt/mssql
     healthcheck:
@@ -29,24 +29,24 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:8080"
       Database__ApplyMigrations: "true"
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BizSpace;User Id=sa;Password=${BIZSPACE_DB_SA_PASSWORD:?Configure the BIZSPACE_DB_SA_PASSWORD Actions secret};Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
-      Jwt__Key: "${Jwt__Key:?Configure the JWT_SIGNING_KEY Actions secret}"
-      Jwt__Issuer: "${Jwt__Issuer:-BizSpace.Api}"
-      Jwt__Audience: "${Jwt__Audience:-BizSpace.Client}"
-      Auth__CodeHmacKey: "${Auth__CodeHmacKey:?Configure the AUTH_CODE_HMAC_KEY Actions secret}"
-      SeedAdmin__Email: "${SeedAdmin__Email:?Configure the SEED_ADMIN_EMAIL Actions secret}"
-      SeedAdmin__Password: "${SeedAdmin__Password:?Configure the SEED_ADMIN_PASSWORD Actions secret}"
-      Email__Host: "${Email__Host:?Configure the SMTP_HOST Actions secret}"
-      Email__Port: "${Email__Port:-587}"
-      Email__UserName: "${Email__UserName:?Configure the SMTP_USERNAME Actions secret}"
-      Email__Password: "${Email__Password:?Configure the SMTP_PASSWORD Actions secret}"
-      Email__FromAddress: "${Email__FromAddress:?Configure the SMTP_FROM_ADDRESS Actions secret}"
-      Email__FromName: "${Email__FromName:-BizSpace}"
-      Email__UseStartTls: "${Email__UseStartTls:-true}"
-      Email__UseAuthentication: "${Email__UseAuthentication:-true}"
-      Cloudinary__CloudName: "${Cloudinary__CloudName:?Configure the CLOUDINARY_CLOUD_NAME Actions secret}"
-      Cloudinary__ApiKey: "${Cloudinary__ApiKey:?Configure the CLOUDINARY_API_KEY Actions secret}"
-      Cloudinary__ApiSecret: "${Cloudinary__ApiSecret:?Configure the CLOUDINARY_API_SECRET Actions secret}"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BizSpace;User Id=sa;Password=${BIZSPACE_DB_SA_PASSWORD:?Set BIZSPACE_DB_SA_PASSWORD in the runner .env file};Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+      Jwt__Key: "${JWT_SIGNING_KEY:-${Jwt__Key:?Set JWT_SIGNING_KEY or Jwt__Key in the env file}}"
+      Jwt__Issuer: "${JWT_ISSUER:-${Jwt__Issuer:-BizSpace.Api}}"
+      Jwt__Audience: "${JWT_AUDIENCE:-${Jwt__Audience:-BizSpace.Client}}"
+      Auth__CodeHmacKey: "${AUTH_CODE_HMAC_KEY:-${Auth__CodeHmacKey:?Set AUTH_CODE_HMAC_KEY or Auth__CodeHmacKey in the env file}}"
+      SeedAdmin__Email: "${SEED_ADMIN_EMAIL:-${SeedAdmin__Email:?Set SEED_ADMIN_EMAIL or SeedAdmin__Email in the env file}}"
+      SeedAdmin__Password: "${SEED_ADMIN_PASSWORD:-${SeedAdmin__Password:?Set SEED_ADMIN_PASSWORD or SeedAdmin__Password in the env file}}"
+      Email__Host: "${SMTP_HOST:-${Email__Host:?Set SMTP_HOST or Email__Host in the env file}}"
+      Email__Port: "${SMTP_PORT:-${Email__Port:-587}}"
+      Email__UserName: "${SMTP_USERNAME:-${Email__UserName:?Set SMTP_USERNAME or Email__UserName in the env file}}"
+      Email__Password: "${SMTP_PASSWORD:-${Email__Password:?Set SMTP_PASSWORD or Email__Password in the env file}}"
+      Email__FromAddress: "${SMTP_FROM_ADDRESS:-${Email__FromAddress:?Set SMTP_FROM_ADDRESS or Email__FromAddress in the env file}}"
+      Email__FromName: "${SMTP_FROM_NAME:-${Email__FromName:-BizSpace}}"
+      Email__UseStartTls: "${SMTP_USE_STARTTLS:-${Email__UseStartTls:-true}}"
+      Email__UseAuthentication: "${SMTP_USE_AUTHENTICATION:-${Email__UseAuthentication:-true}}"
+      Cloudinary__CloudName: "${Cloudinary__CloudName:?Set Cloudinary__CloudName in the runner .env file}"
+      Cloudinary__ApiKey: "${Cloudinary__ApiKey:?Set Cloudinary__ApiKey in the runner .env file}"
+      Cloudinary__ApiSecret: "${Cloudinary__ApiSecret:?Set Cloudinary__ApiSecret in the runner .env file}"
       Cors__AllowedOrigins__0: "http://${BIZSPACE_HOST_IP:?Set the BIZSPACE_HOST_IP Actions variable}:4200"
     depends_on:
       sqlserver:
