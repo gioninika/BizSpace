@@ -9,7 +9,6 @@ namespace BizSpace.Repositories.Services;
 public sealed class MarketingCampaignService(
     IGenericRepository<MarketingCampaign> campaigns,
     IGenericRepository<Store> stores,
-    IGenericRepository<Category> categories,
     IGenericRepository<Product> products) : IMarketingCampaignService
 {
     public async Task<List<MarketingCampaignDto>> GetAllAsync(int managerId) =>
@@ -62,8 +61,10 @@ public sealed class MarketingCampaignService(
 
         if (request.StoreId.HasValue && !await stores.Query.AnyAsync(x => x.Id == request.StoreId.Value && x.ManagerId == managerId))
             throw new ForbiddenException("You can create campaigns only for your own stores.");
-        if (request.CategoryId.HasValue && !await categories.Query.AnyAsync(x => x.Id == request.CategoryId.Value))
-            throw new KeyNotFoundException("Category was not found.");
+        if (request.CategoryId.HasValue &&
+            (!request.StoreId.HasValue || !await products.Query.AnyAsync(x =>
+                x.StoreId == request.StoreId.Value && x.CategoryId == request.CategoryId.Value)))
+            throw new ForbiddenException("The selected category must contain products from the selected store.");
         if (request.ProductIds.Any(id => id <= 0))
             throw new ArgumentException("Product IDs must be positive integers.");
         if (request.ProductIds.Distinct().Count() != request.ProductIds.Count)

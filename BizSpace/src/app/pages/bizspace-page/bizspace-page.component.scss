@@ -1074,6 +1074,72 @@ td strong {
 .product-modal input::placeholder {
   color: #b0aca3;
 }
+.campaign-product-picker {
+  margin: 4px 0 16px;
+}
+.campaign-product-picker-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #767269;
+  font-size: 9px;
+  font-weight: 600;
+}
+.campaign-product-picker > p,
+.campaign-target-help {
+  margin: 0 0 9px;
+  color: #8a857a;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.campaign-form-error {
+  margin: 0 0 14px;
+  color: #a3382f;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.campaign-product-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #e4e1d9;
+}
+.product-modal .campaign-product-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 9px 10px;
+  border-bottom: 1px solid #efede8;
+  color: var(--ink);
+  cursor: pointer;
+}
+.product-modal .campaign-product-option:last-child {
+  border-bottom: 0;
+}
+.product-modal .campaign-product-option input {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--gold);
+}
+.campaign-product-option span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.campaign-product-option strong {
+  overflow: hidden;
+  color: #393832;
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.campaign-product-option small {
+  color: #8a857a;
+  font-size: 9px;
+}
 .toast-message {
   position: fixed;
   z-index: 40;

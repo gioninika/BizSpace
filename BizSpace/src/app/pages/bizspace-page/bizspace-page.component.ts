@@ -57,6 +57,19 @@ export class BizSpacePageComponent implements OnInit {
   protected readonly storeModalOpen = signal(false);
   protected readonly campaignModalOpen = signal(false);
   protected readonly editingCampaign = signal<MarketingCampaignDto | null>(null);
+  protected readonly campaignTarget = signal<'store' | 'category' | 'products'>('store');
+  protected readonly campaignStoreId = signal<number | null>(null);
+  protected readonly campaignProductIds = signal<ReadonlySet<number>>(new Set<number>());
+  protected readonly campaignCategories = computed(() => {
+    const storeId = this.campaignStoreId();
+    if (!storeId) return [];
+    const categoryIds = new Set(
+      this.state.productViews()
+        .filter((product) => product.storeId === storeId)
+        .map((product) => product.categoryId),
+    );
+    return this.state.allCategories().filter((category) => categoryIds.has(category.id));
+  });
   protected readonly categoryModalOpen = signal(false);
   protected readonly editingCategory = signal<CategoryDto | null>(null);
   protected readonly profileBusy = signal(false);
@@ -1052,11 +1065,51 @@ export class BizSpacePageComponent implements OnInit {
   }
   protected openCampaignModal(campaign?: MarketingCampaignDto): void {
     this.editingCampaign.set(campaign ?? null);
+    this.campaignTarget.set(
+      campaign?.productIds.length ? 'products' : campaign?.categoryId ? 'category' : 'store',
+    );
+    this.campaignStoreId.set(
+      campaign?.storeId ?? this.state.selectedStoreId() ?? this.state.myStores()[0]?.id ?? null,
+    );
+    this.campaignProductIds.set(new Set(campaign?.productIds ?? []));
     this.campaignModalOpen.set(true);
+  }
+  protected setCampaignTarget(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (value === 'category' || value === 'products' || value === 'store')
+      this.campaignTarget.set(value);
+  }
+  protected setCampaignStore(event: Event): void {
+    this.campaignStoreId.set(Number((event.target as HTMLSelectElement).value) || null);
+  }
+  protected toggleCampaignProduct(productId: number, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.campaignProductIds.update((current) => {
+      const next = new Set(current);
+      if (checked) next.add(productId);
+      else next.delete(productId);
+      return next;
+    });
   }
   protected async saveCampaign(form: HTMLFormElement): Promise<void> {
     const data = new FormData(form);
-    const selectedStoreId = Number(data.get('storeId')) || null;
+    const target = String(data.get('targetType') ?? 'store') as 'store' | 'category' | 'products';
+    const selectedStoreId = target === 'products' ? null : this.campaignStoreId();
+    const categoryId = target === 'category' ? Number(data.get('categoryId')) || null : null;
+    const productIds = target === 'products' ? [...this.campaignProductIds()] : [];
+    this.state.apiError.set('');
+    if (target !== 'products' && !selectedStoreId) {
+      this.state.apiError.set('Create or choose one of your stores for this campaign.');
+      return;
+    }
+    if (target === 'category' && !categoryId) {
+      this.state.apiError.set('Choose a category that has products in the selected store.');
+      return;
+    }
+    if (target === 'products' && productIds.length === 0) {
+      this.state.apiError.set('Select at least one product for this campaign.');
+      return;
+    }
     const request = {
       name: String(data.get('name') ?? '').trim(),
       description: String(data.get('description') ?? '').trim(),
@@ -1065,15 +1118,10 @@ export class BizSpacePageComponent implements OnInit {
       endsAtUtc: new Date(String(data.get('endsAt'))).toISOString(),
       isEnabled: data.get('isEnabled') === 'on',
       storeId: selectedStoreId,
-      categoryId: Number(data.get('categoryId')) || null,
-      productIds: this.state
-        .productViews()
-        .filter((product) => !selectedStoreId || product.storeId === selectedStoreId)
-        .slice(0, 500)
-        .map((product) => product.id),
+      categoryId,
+      productIds,
     };
     const existing = this.editingCampaign();
-    this.state.apiError.set('');
     if (existing) await this.state.updateCampaign(existing, request);
     else await this.state.createCampaign(request);
     if (!this.state.apiError()) {

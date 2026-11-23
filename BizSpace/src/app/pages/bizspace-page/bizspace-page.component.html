@@ -1719,17 +1719,76 @@
                 required
                 [value]="editingCampaign()?.discountPercent || ''" /></label
             ><label
-              >Store<select
-                name="storeId"
-                required
-                [value]="editingCampaign()?.storeId || state.selectedStoreId() || ''"
+              >Campaign target<select
+                name="targetType"
+                [value]="campaignTarget()"
+                (change)="setCampaignTarget($event)"
               >
+                <option value="store">Entire store</option>
+                <option value="category">Category in a store</option>
+                <option value="products">Selected products</option>
+              </select></label
+            >
+          </div>
+          @if (campaignTarget() !== 'products') {
+            <label
+              >Store<select
+                name="campaignStoreId"
+                required
+                [value]="campaignStoreId() ?? ''"
+                (change)="setCampaignStore($event)"
+              >
+                <option value="">Choose a store</option>
                 @for (store of state.myStores(); track store.id) {
                   <option [value]="store.id">{{ store.name }}</option>
                 }
               </select></label
             >
-          </div>
+          }
+          @if (campaignTarget() === 'category') {
+            <label
+              >Category<select name="categoryId" required>
+                <option value="">Choose a category</option>
+                @for (category of campaignCategories(); track category.id) {
+                  <option
+                    [value]="category.id"
+                    [selected]="editingCampaign()?.categoryId === category.id"
+                  >
+                    {{ categoryPath(category.id) }}
+                  </option>
+                }
+              </select></label
+            >
+            @if (!campaignCategories().length) {
+              <p class="campaign-target-help">
+                This store has no products assigned to a category yet.
+              </p>
+            }
+          }
+          @if (campaignTarget() === 'products') {
+            <div class="campaign-product-picker">
+              <span class="campaign-product-picker-label">Products</span>
+              <p>Select one or more products from your stores.</p>
+              <div class="campaign-product-list">
+                @for (product of state.productViews(); track product.id) {
+                  <label class="campaign-product-option">
+                    <input
+                      type="checkbox"
+                      [checked]="campaignProductIds().has(product.id)"
+                      (change)="toggleCampaignProduct(product.id, $event)"
+                    />
+                    <span>
+                      <strong>{{ product.name }}</strong>
+                      <small>{{ product.storeName }}</small>
+                    </span>
+                  </label>
+                } @empty {
+                  <p class="campaign-target-help">Add a product to one of your stores first.</p>
+                }
+              </div>
+              <p class="campaign-target-help">{{ campaignProductIds().size }} selected</p>
+            </div>
+          }
           <div class="form-row">
             <label
               >Starts<input
@@ -1745,19 +1804,7 @@
                 [value]="editingCampaign()?.endsAtUtc?.slice(0, 16) || ''"
             /></label>
           </div>
-          <label
-            >Category<select name="categoryId">
-              <option value="">All categories</option>
-              @for (category of state.allCategories(); track category.id) {
-                <option
-                  [value]="category.id"
-                  [selected]="editingCampaign()?.categoryId === category.id"
-                >
-                  {{ categoryPath(category.id) }}
-                </option>
-              }
-            </select></label
-          ><label class="checkbox-label"
+          <label class="checkbox-label"
             ><input
               name="isEnabled"
               type="checkbox"
@@ -1765,6 +1812,9 @@
             />
             Campaign enabled</label
           >
+          @if (state.apiError()) {
+            <p class="campaign-form-error" role="alert">{{ state.apiError() }}</p>
+          }
           <div class="modal-actions">
             <button
               type="button"
