@@ -19,22 +19,51 @@ jobs:
 
       - name: Deploy with Docker Compose
         shell: bash
+        env:
+          BIZSPACE_HOST_IP: ${{ vars.BIZSPACE_HOST_IP }}
+          BIZSPACE_DB_SA_PASSWORD: ${{ secrets.BIZSPACE_DB_SA_PASSWORD }}
+          Jwt__Key: ${{ secrets.JWT_SIGNING_KEY }}
+          Jwt__Issuer: BizSpace.Api
+          Jwt__Audience: BizSpace.Client
+          Auth__CodeHmacKey: ${{ secrets.AUTH_CODE_HMAC_KEY }}
+          SeedAdmin__Email: ${{ secrets.SEED_ADMIN_EMAIL }}
+          SeedAdmin__Password: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          Email__Host: ${{ secrets.SMTP_HOST }}
+          Email__Port: ${{ vars.SMTP_PORT || '587' }}
+          Email__UserName: ${{ secrets.SMTP_USERNAME }}
+          Email__Password: ${{ secrets.SMTP_PASSWORD }}
+          Email__FromAddress: ${{ secrets.SMTP_FROM_ADDRESS }}
+          Email__FromName: ${{ vars.SMTP_FROM_NAME || 'BizSpace' }}
+          Email__UseStartTls: ${{ vars.SMTP_USE_STARTTLS || 'true' }}
+          Email__UseAuthentication: ${{ vars.SMTP_USE_AUTHENTICATION || 'true' }}
+          Cloudinary__CloudName: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          Cloudinary__ApiKey: ${{ secrets.CLOUDINARY_API_KEY }}
+          Cloudinary__ApiSecret: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: |
           set -euo pipefail
 
-          ENV_FILE="$HOME/BizSpace/BizSpace.API/.env"
-          if [ ! -f "$ENV_FILE" ]; then
-            echo "Missing deployment environment file: $ENV_FILE"
+          if [ -z "${BIZSPACE_HOST_IP:-}" ]; then
+            BIZSPACE_HOST_IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}' || true)"
+          fi
+          if [ -z "$BIZSPACE_HOST_IP" ]; then
+            echo "Set the BIZSPACE_HOST_IP Actions variable or configure a default IPv4 route on the runner."
             exit 1
           fi
+          if [[ ! "$BIZSPACE_HOST_IP" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "BIZSPACE_HOST_IP must be an IPv4 address or DNS name without a scheme or port."
+            exit 1
+          fi
+          export BIZSPACE_HOST_IP
 
-          export BIZSPACE_HOST_IP="$(ip -4 route get 1.1.1.1 | awk '{for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')"
-          if [ -z "$BIZSPACE_HOST_IP" ]; then
-            echo "Could not determine the VM's IPv4 address."
+          if ! docker compose version >/dev/null 2>&1; then
+            echo "Docker Compose is not installed on the self-hosted runner."
+            exit 1
+          fi
+          if ! docker info >/dev/null 2>&1; then
+            echo "Docker Engine is unavailable or the runner user cannot access it."
             exit 1
           fi
 
           docker compose \
-            --env-file "$ENV_FILE" \
-            -f "$GITHUB_WORKSPACE/deploy.yml" \
+            -f "$GITHUB_WORKSPACE/docker-compose.production.yml" \
             up -d --build

@@ -8,6 +8,8 @@ This workspace contains two projects:
 BizSpace/
 ├── README.md
 ├── docker-compose.yml             Full-stack Compose entry point
+├── docker-compose.production.yml   Production deployment stack
+├── .github/workflows/deploy.yml   Push-triggered deployment workflow
 ├── BizSpace/                      Angular 20 frontend
 └── BizSpace.API/                  ASP.NET Core 10 API and SQL Server setup
 ```
@@ -51,6 +53,14 @@ Jwt__Audience=JWT_AUDIENCE
 Database__ApplyMigrations=true
 SeedAdmin__Email=ADMIN_EMAIL
 SeedAdmin__Password=ADMIN_PASSWORD
+Email__Host=SMTP_HOST
+Email__Port=587
+Email__UserName=SMTP_USERNAME
+Email__Password=SMTP_PASSWORD
+Email__FromAddress=SMTP_FROM_ADDRESS
+Email__FromName=BizSpace
+Email__UseStartTls=true
+Email__UseAuthentication=true
 Cloudinary__CloudName=CLOUDINARY_CLOUD_NAME
 Cloudinary__ApiKey=CLOUDINARY_API_KEY
 Cloudinary__ApiSecret=CLOUDINARY_API_SECRET
@@ -134,3 +144,13 @@ npm test
 ```
 
 Card checkout is a project demo flow; no payment processor is connected.
+
+## Deploy with GitHub Actions
+
+`.github/workflows/deploy.yml` deploys on pushes to `master` and supports manual runs. It checks out the pushed commit and runs `docker compose up -d --build` with `docker-compose.production.yml`.
+
+Before the first deployment, configure a self-hosted Linux x64 GitHub Actions runner with the labels `self-hosted`, `linux`, and `x64`. Keep the runner service online, install Docker Engine and the Docker Compose plugin, and use Actions Runner version 2.327.1 or later for `actions/checkout@v7`.
+
+Add these GitHub repository **Actions secrets** before deployment: `BIZSPACE_DB_SA_PASSWORD`, `JWT_SIGNING_KEY`, `AUTH_CODE_HMAC_KEY`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. `JWT_SIGNING_KEY` and `AUTH_CODE_HMAC_KEY` must each be at least 32 bytes. Set optional repository **Actions variables** `SMTP_PORT` (default `587`), `SMTP_FROM_NAME` (default `BizSpace`), `SMTP_USE_STARTTLS` (default `true`), and `SMTP_USE_AUTHENTICATION` (default `true`). The workflow passes the secrets directly to Docker Compose; no production `.env` file needs to be stored on the runner. The deployment Compose file builds the container-to-container SQL connection itself, so `ConnectionStrings__DefaultConnection` remains for local or direct API runs.
+
+The workflow determines the runner's IPv4 address for the browser and CORS settings. If that address is not reachable by users, set the Actions variable `BIZSPACE_HOST_IP` to the reachable IPv4 address or DNS name. Allow or forward ports `4200` (web app) and `8080` (API) through the VM and host firewall. The current production Compose file serves HTTP and writes an HTTP API URL into the browser bundle; public HTTPS also requires updating the reverse-proxy, API URL, and CORS origin settings.

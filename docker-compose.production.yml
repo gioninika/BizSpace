@@ -1,0 +1,79 @@
+# GitHub Actions provides production settings as runner environment variables.
+
+name: bizspace
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${BIZSPACE_DB_SA_PASSWORD:?Configure the BIZSPACE_DB_SA_PASSWORD Actions secret}"
+    volumes:
+      - bizspace-sql-data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1"
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+
+  bizspace:
+    build:
+      context: ./BizSpace.API
+      dockerfile: BizSpace.API/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      Database__ApplyMigrations: "true"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=BizSpace;User Id=sa;Password=${BIZSPACE_DB_SA_PASSWORD:?Configure the BIZSPACE_DB_SA_PASSWORD Actions secret};Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+      Jwt__Key: "${Jwt__Key:?Configure the JWT_SIGNING_KEY Actions secret}"
+      Jwt__Issuer: "${Jwt__Issuer:-BizSpace.Api}"
+      Jwt__Audience: "${Jwt__Audience:-BizSpace.Client}"
+      Auth__CodeHmacKey: "${Auth__CodeHmacKey:?Configure the AUTH_CODE_HMAC_KEY Actions secret}"
+      SeedAdmin__Email: "${SeedAdmin__Email:?Configure the SEED_ADMIN_EMAIL Actions secret}"
+      SeedAdmin__Password: "${SeedAdmin__Password:?Configure the SEED_ADMIN_PASSWORD Actions secret}"
+      Email__Host: "${Email__Host:?Configure the SMTP_HOST Actions secret}"
+      Email__Port: "${Email__Port:-587}"
+      Email__UserName: "${Email__UserName:?Configure the SMTP_USERNAME Actions secret}"
+      Email__Password: "${Email__Password:?Configure the SMTP_PASSWORD Actions secret}"
+      Email__FromAddress: "${Email__FromAddress:?Configure the SMTP_FROM_ADDRESS Actions secret}"
+      Email__FromName: "${Email__FromName:-BizSpace}"
+      Email__UseStartTls: "${Email__UseStartTls:-true}"
+      Email__UseAuthentication: "${Email__UseAuthentication:-true}"
+      Cloudinary__CloudName: "${Cloudinary__CloudName:?Configure the CLOUDINARY_CLOUD_NAME Actions secret}"
+      Cloudinary__ApiKey: "${Cloudinary__ApiKey:?Configure the CLOUDINARY_API_KEY Actions secret}"
+      Cloudinary__ApiSecret: "${Cloudinary__ApiSecret:?Configure the CLOUDINARY_API_SECRET Actions secret}"
+      Cors__AllowedOrigins__0: "http://${BIZSPACE_HOST_IP:?Set the BIZSPACE_HOST_IP Actions variable}:4200"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./BizSpace
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      BIZSPACE_HOST_IP: "${BIZSPACE_HOST_IP:?Set the BIZSPACE_HOST_IP Actions variable}"
+    command:
+      - sh
+      - -c
+      - >-
+        sed -i "s|http://localhost:8080/api|http://$${BIZSPACE_HOST_IP}:8080/api|" /app/dist/BizSpace/browser/bizspace-config.js
+        && exec node dist/BizSpace/server/server.mjs
+    depends_on:
+      bizspace:
+        condition: service_started
+    ports:
+      - "4200:4000"
+
+volumes:
+  bizspace-sql-data:
