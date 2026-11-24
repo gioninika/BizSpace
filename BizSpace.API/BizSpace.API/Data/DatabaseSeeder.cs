@@ -255,21 +255,50 @@ public static class DatabaseSeeder
         foreach (var (productName, images) in DemoCatalogImages.ProductImages)
         {
             var product = await db.Products.FirstOrDefaultAsync(candidate => candidate.Name == productName);
-            if (product is null || await db.ProductImages.AnyAsync(image => image.ProductId == product.Id))
+            if (product is null)
                 continue;
+
+            var existingImages = await db.ProductImages
+                .Where(image => image.ProductId == product.Id)
+                .ToListAsync();
+
+            if (existingImages.Count == 0)
+            {
+                foreach (var image in images)
+                {
+                    db.ProductImages.Add(new ProductImage
+                    {
+                        ProductId = product.Id,
+                        PublicId = image.SecureUrl.StartsWith("/", StringComparison.Ordinal)
+                            ? null
+                            : image.PublicId,
+                        SecureUrl = image.SecureUrl,
+                        Format = image.Format,
+                        Width = image.Width,
+                        Height = image.Height,
+                        SortOrder = image.SortOrder
+                    });
+                }
+
+                continue;
+            }
 
             foreach (var image in images)
             {
-                db.ProductImages.Add(new ProductImage
-                {
-                    ProductId = product.Id,
-                    PublicId = image.PublicId,
-                    SecureUrl = image.SecureUrl,
-                    Format = image.Format,
-                    Width = image.Width,
-                    Height = image.Height,
-                    SortOrder = image.SortOrder
-                });
+                var existing = existingImages.FirstOrDefault(candidate =>
+                    string.Equals(candidate.PublicId, image.PublicId, StringComparison.Ordinal) ||
+                    (string.IsNullOrWhiteSpace(candidate.PublicId) &&
+                     string.Equals(candidate.SecureUrl, image.SecureUrl, StringComparison.Ordinal)));
+                if (existing is null)
+                    continue;
+
+                existing.PublicId = image.SecureUrl.StartsWith("/", StringComparison.Ordinal)
+                    ? null
+                    : image.PublicId;
+                existing.SecureUrl = image.SecureUrl;
+                existing.Format = image.Format;
+                existing.Width = image.Width;
+                existing.Height = image.Height;
             }
         }
 

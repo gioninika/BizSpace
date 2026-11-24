@@ -32,8 +32,8 @@ internal static class DemoCatalogImages
             ],
             ["BrewCraft Pour-Over Coffee Set"] =
             [
-                new("bizspace-demo/products/brewcraft-pour-over-01", "https://res.cloudinary.com/s1kfhtvi/image/upload/v1795204408/bizspace-demo/products/brewcraft-pour-over-01.jpg", "jpg", 1600, 1067, 0, "https://unsplash.com/photos/coffee-brewing-equipment-on-a-counter-q0qXYST9iKY", "Yasin Onus"),
-                new("bizspace-demo/products/brewcraft-pour-over-02", "https://res.cloudinary.com/s1kfhtvi/image/upload/v1795204577/bizspace-demo/products/brewcraft-pour-over-02.jpg", "jpg", 1600, 2400, 1, "https://unsplash.com/photos/clear-glass-coffee-pour-over-dripper-and-server-casting-shadows-etL0cJaacYo", "Madeline Liu")
+                new("bizspace-demo/products/brewcraft-pour-over-01", "/images/products/brewcraft-pour-over-01.jpg", "jpg", 1600, 1067, 0, "https://unsplash.com/photos/coffee-brewing-equipment-on-a-counter-q0qXYST9iKY", "Yasin Onus"),
+                new("bizspace-demo/products/brewcraft-pour-over-02", "/images/products/brewcraft-pour-over-02.jpg", "jpg", 1600, 2400, 1, "https://unsplash.com/photos/clear-glass-coffee-pour-over-dripper-and-server-casting-shadows-etL0cJaacYo", "Madeline Liu")
             ],
             ["Everyday Canvas Tote"] =
             [
