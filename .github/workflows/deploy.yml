@@ -58,3 +58,25 @@ jobs:
             --env-file "$ENV_FILE" \
             -f "$GITHUB_WORKSPACE/docker-compose.production.yml" \
             up -d --build
+
+          print_deployment_urls() {
+            local web_url="http://${BIZSPACE_HOST_IP}:4200"
+            local api_base_url="http://${BIZSPACE_HOST_IP}:8080/api"
+            local api_health_url="http://${BIZSPACE_HOST_IP}:8080/health"
+
+            echo "Deployment host: ${BIZSPACE_HOST_IP}"
+            echo "Web URL: ${web_url}"
+            echo "API base URL: ${api_base_url}"
+            echo "API health URL: ${api_health_url}"
+
+            {
+              echo "## Deployment endpoints"
+              echo
+              echo "- Host: \`${BIZSPACE_HOST_IP}\`"
+              echo "- Web: ${web_url}"
+              echo "- API base: ${api_base_url}"
+              echo "- API health: ${api_health_url}"
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          print_deployment_urls
